@@ -10,7 +10,7 @@ require_once '../../includes/header.php';
         <div class="w-64 bg-white rounded-xl shadow-sm border border-gray-100 p-5 mr-8 hidden md:block">
             <h2 class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-4">Peternak Menu</h2>
             <nav class="space-y-2">
-                <a href="#" class="flex items-center gap-3 px-3 py-2 bg-brand-light text-brand-green rounded-md font-medium text-sm transition">
+                <a href="#" class="flex items-center gap-3 px-3 py-2 bg-brand-light text-brand-primary rounded-md font-medium text-sm transition">
                     <i class="fas fa-home w-5 text-center"></i> Dashboard
                 </a>
                 <a href="#" class="flex items-center gap-3 px-3 py-2 text-gray-600 hover:bg-gray-50 rounded-md font-medium text-sm transition">
@@ -32,7 +32,7 @@ require_once '../../includes/header.php';
                     <h1 class="text-3xl font-bold text-gray-900">Dashboard Peternak</h1>
                     <p class="mt-1 text-sm text-gray-600">Selamat datang, <?php echo isset($_SESSION['name']) ? $_SESSION['name'] : 'Budi Peternak'; ?>!</p>
                 </div>
-                <button class="bg-brand-green text-white px-4 py-2 rounded-md shadow-sm hover:bg-brand-dark transition text-sm font-medium flex items-center gap-2">
+                <button class="bg-brand-primary text-white px-4 py-2 rounded-md shadow-sm hover:bg-brand-dark transition text-sm font-medium flex items-center gap-2">
                     <i class="fas fa-plus"></i> Tambah Hewan
                 </button>
             </div>
@@ -40,7 +40,7 @@ require_once '../../includes/header.php';
             <!-- Stats -->
             <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
                 <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-100 flex items-center">
-                    <div class="p-3 rounded-full bg-brand-light text-brand-green mr-4">
+                    <div class="p-3 rounded-full bg-brand-light text-brand-primary mr-4">
                         <i class="fas fa-paw text-2xl w-8 text-center"></i>
                     </div>
                     <div>
@@ -72,7 +72,7 @@ require_once '../../includes/header.php';
             <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden mb-8">
                 <div class="px-6 py-5 border-b border-gray-100 flex justify-between items-center">
                     <h3 class="text-lg font-semibold text-gray-900">Hewan Ternak Saya</h3>
-                    <a href="#" class="text-sm text-brand-green font-medium hover:text-brand-dark transition">Kelola Semua</a>
+                    <a href="#" class="text-sm text-brand-primary font-medium hover:text-brand-dark transition">Kelola Semua</a>
                 </div>
                 <div class="overflow-x-auto">
                     <table class="min-w-full divide-y divide-gray-200">
@@ -109,7 +109,7 @@ require_once '../../includes/header.php';
                                     <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">Tersedia</span>
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                    <button class="text-brand-green hover:text-brand-dark mr-3 transition"><i class="fas fa-edit"></i></button>
+                                    <button class="text-brand-primary hover:text-brand-dark mr-3 transition"><i class="fas fa-edit"></i></button>
                                     <button class="text-red-600 hover:text-red-900 transition"><i class="fas fa-trash"></i></button>
                                 </td>
                             </tr>

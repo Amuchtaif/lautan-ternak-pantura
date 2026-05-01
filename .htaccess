@@ -1,0 +1,19 @@
+RewriteEngine On
+RewriteBase /lautan-ternak-pantura/
+
+# Hapus ekstensi .php dari URL browser
+RewriteCond %{THE_REQUEST} ^[A-Z]{3,}\s([^.]+)\.php [NC]
+RewriteCond %1 !index$
+RewriteRule ^ %1 [R=301,L]
+
+# Jika request (tanpa .php) adalah file .php yang valid, maka proses file tersebut
+RewriteCond %{DOCUMENT_ROOT}/lautan-ternak-pantura/$1.php -f
+RewriteRule ^(.*)$ $1.php [L]
+
+# Jika file atau folder fisik ada, biarkan saja (misal untuk aset css/js/gambar)
+RewriteCond %{REQUEST_FILENAME} -d [OR]
+RewriteCond %{REQUEST_FILENAME} -f
+RewriteRule ^ - [L]
+
+# Routing MVC untuk path lainnya (diarahkan ke index.php)
+RewriteRule ^(.*)$ index.php?url=$1 [QSA,L]

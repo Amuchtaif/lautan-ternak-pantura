@@ -2,11 +2,11 @@ USE lautan_ternak_pantura;
 
 -- Passwords are 'password123' (hashed using bcrypt)
 INSERT INTO users (name, email, password, role) VALUES
-('Admin Utama', 'admin@ltp.com', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'admin'),
-('Ahmad Peternak', 'ahmad@breeder.com', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'breeder'),
-('Budi Peternak', 'budi@breeder.com', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'breeder'),
-('Siti Customer', 'siti@customer.com', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'customer'),
-('Agus Customer', 'agus@customer.com', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'customer');
+('Admin Utama', 'admin@ltp.com', '$2y$10$.PE6hkb3FsXvx29ckYUJeO/0Poub5Zqczg/vFnn/7bICDICWkQ3h6', 'admin'),
+('Ahmad Peternak', 'ahmad@breeder.com', '$2y$10$.PE6hkb3FsXvx29ckYUJeO/0Poub5Zqczg/vFnn/7bICDICWkQ3h6', 'breeder'),
+('Budi Peternak', 'budi@breeder.com', '$2y$10$.PE6hkb3FsXvx29ckYUJeO/0Poub5Zqczg/vFnn/7bICDICWkQ3h6', 'breeder'),
+('Siti Customer', 'siti@customer.com', '$2y$10$.PE6hkb3FsXvx29ckYUJeO/0Poub5Zqczg/vFnn/7bICDICWkQ3h6', 'customer'),
+('Agus Customer', 'agus@customer.com', '$2y$10$.PE6hkb3FsXvx29ckYUJeO/0Poub5Zqczg/vFnn/7bICDICWkQ3h6', 'customer');
 
 INSERT INTO livestock (breeder_id, type, category, weight, age, health_condition, price, image_url, status) VALUES
 (2, 'sapi', 'qurban', 350.50, 24, 'Sehat, sudah vaksin PMK', 21000000, 'https://images.unsplash.com/photo-1546445317-29f4545e9d53?auto=format&fit=crop&q=80', 'available'),
