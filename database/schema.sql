@@ -7,6 +7,8 @@ CREATE TABLE users (
     email VARCHAR(100) NOT NULL UNIQUE,
     password VARCHAR(255) NOT NULL,
     role ENUM('admin', 'customer', 'breeder') DEFAULT 'customer',
+    phone VARCHAR(20) DEFAULT '',
+    address TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -56,6 +58,17 @@ CREATE TABLE orders (
     order_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (customer_id) REFERENCES users(id) ON DELETE CASCADE,
     FOREIGN KEY (livestock_id) REFERENCES livestock(id) ON DELETE CASCADE
+);
+
+CREATE TABLE sohibul_qurban (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    plan_id INT NOT NULL,
+    name VARCHAR(100) NOT NULL,
+    phone VARCHAR(20) DEFAULT '',
+    address TEXT,
+    relationship VARCHAR(50) DEFAULT 'self',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (plan_id) REFERENCES savings_plans(id) ON DELETE CASCADE
 );
 
 CREATE TABLE payments (

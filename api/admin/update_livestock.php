@@ -24,25 +24,29 @@ if (empty($_POST)) {
 }
 
 $id = $_POST['id'] ?? null;
-$type = $_POST['type'] ?? null;
-$category = $_POST['category'] ?? null;
+$code = $_POST['code'] ?? null;
+$name = $_POST['name'] ?? null;
+$breed = $_POST['breed'] ?? null;
 $weight = $_POST['weight'] ?? null;
-$age = $_POST['age'] ?? null;
+$gender = $_POST['gender'] ?? 'male';
 $price = $_POST['price'] ?? null;
-$status = $_POST['status'] ?? null;
-$health_condition = $_POST['health_condition'] ?? null;
+$purchase_price = $_POST['purchase_price'] ?? null;
+$stock = $_POST['stock'] ?? 1;
+$status = $_POST['status'] ?? 'available';
+$description = $_POST['description'] ?? null;
 
 if (!$id) { echo json_encode(['success' => false, 'message' => 'ID tidak terbaca']); exit(); }
-if (!$type) { echo json_encode(['success' => false, 'message' => 'Jenis hewan wajib diisi']); exit(); }
-if (!$category) { echo json_encode(['success' => false, 'message' => 'Kategori wajib diisi']); exit(); }
+if (!$code) { echo json_encode(['success' => false, 'message' => 'Kode hewan wajib diisi']); exit(); }
+if (!$name) { echo json_encode(['success' => false, 'message' => 'Nama hewan wajib diisi']); exit(); }
+if (!$breed) { echo json_encode(['success' => false, 'message' => 'Ras hewan wajib diisi']); exit(); }
 if (!$weight) { echo json_encode(['success' => false, 'message' => 'Berat wajib diisi']); exit(); }
-if (!$age) { echo json_encode(['success' => false, 'message' => 'Usia wajib diisi']); exit(); }
-if (!$price) { echo json_encode(['success' => false, 'message' => 'Harga wajib diisi']); exit(); }
+if (!$price) { echo json_encode(['success' => false, 'message' => 'Harga jual wajib diisi']); exit(); }
+if ($purchase_price === null || $purchase_price === '') { echo json_encode(['success' => false, 'message' => 'Harga beli wajib diisi']); exit(); }
 if (!$status) { echo json_encode(['success' => false, 'message' => 'Status wajib diisi']); exit(); }
 
 // Handle image upload
 $image_sql = '';
-$params = [$type, $category, $weight, $age, $price, $status, $health_condition];
+$params = [$code, $name, $breed, $weight, $gender, $price, $purchase_price, $stock, $status, $description];
 
 if (isset($_FILES['image']) && $_FILES['image']['error'] === UPLOAD_ERR_OK) {
     $uploadDir = '../../assets/uploads/livestock/';
@@ -54,16 +58,16 @@ if (isset($_FILES['image']) && $_FILES['image']['error'] === UPLOAD_ERR_OK) {
     $uploadPath = $uploadDir . $filename;
     
     if (move_uploaded_file($_FILES['image']['tmp_name'], $uploadPath)) {
-        $image_url = '/lautan-ternak-pantura/assets/uploads/livestock/' . $filename;
-        $image_sql = ', image_url = ?';
-        $params[] = $image_url;
+        $image = '/lautan-ternak-pantura/assets/uploads/livestock/' . $filename;
+        $image_sql = ', image = ?';
+        $params[] = $image;
     }
 }
 
 $params[] = $id;
 
 try {
-    $stmt = $conn->prepare("UPDATE livestock SET type = ?, category = ?, weight = ?, age = ?, price = ?, status = ?, health_condition = ?{$image_sql} WHERE id = ?");
+    $stmt = $conn->prepare("UPDATE livestock SET code = ?, name = ?, breed = ?, weight = ?, gender = ?, price = ?, purchase_price = ?, stock = ?, status = ?, description = ?{$image_sql} WHERE id = ?");
     $stmt->execute($params);
 
     echo json_encode(['success' => true, 'message' => 'Data hewan berhasil diperbarui']);

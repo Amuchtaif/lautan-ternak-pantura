@@ -17,8 +17,18 @@ $livestockId = isset($_POST['livestock_id']) ? (int)$_POST['livestock_id'] : nul
 $targetAmount = (float)$_POST['target_amount'];
 $duration = (int)$_POST['duration'];
 
+$sqName = $_POST['sq_name'] ?? '';
+$sqPhone = $_POST['sq_phone'] ?? '';
+$sqAddress = $_POST['sq_address'] ?? '';
+$sqRelationship = $_POST['sq_relationship'] ?? 'self';
+
 if ($targetAmount <= 0 || $duration <= 0) {
     header("Location: ../../views/tabungan?error=invalid_data");
+    exit();
+}
+
+if (empty($sqName)) {
+    header("Location: ../../views/tabungan?error=nama_sohibul_qurban_wajib_diisi");
     exit();
 }
 
@@ -32,9 +42,11 @@ try {
     $stmt->execute([$customerId, $livestockId, $targetAmount, $monthlyInstallment]);
     $planId = $conn->lastInsertId();
 
-    // 2. If livestock selected, mark it as booked (optional - depends on business logic)
-    // For now, we won't strictly mark as booked until a deposit is made, or we can mark it now.
-    // The user said "memilih hewan", so we should probably reserve it.
+    // 2. Save Sohibul Qurban data
+    $stmt = $conn->prepare("INSERT INTO sohibul_qurban (plan_id, name, phone, address, relationship) VALUES (?, ?, ?, ?, ?)");
+    $stmt->execute([$planId, $sqName, $sqPhone, $sqAddress, $sqRelationship]);
+
+    // 3. If livestock selected, mark it as booked
     if ($livestockId) {
         $stmt = $conn->prepare("UPDATE livestock SET status = 'booked' WHERE id = ?");
         $stmt->execute([$livestockId]);

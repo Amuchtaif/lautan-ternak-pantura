@@ -14,76 +14,29 @@ try {
 } catch (PDOException $e) {
     $errorMsg = $e->getMessage();
 }
-?>
-<!DOCTYPE html>
-<html lang="id">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Kelola Pengguna - Admin Dashboard</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        brand: {
-                            primary: '#0d5bb5',
-                            secondary: '#00a3e0',
-                            light: '#e0f2fe',
-                            dark: '#0a4286',
-                            accent: '#f59e0b',
-                        }
-                    }
-                }
-            }
-        }
-    </script>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-    <link rel="icon" type="image/ico" href="/lautan-ternak-pantura/assets/images/favicon.ico">
-    <style>
-        body { font-family: 'Plus Jakarta Sans', sans-serif; }
-        .sidebar-link.active { background-color: rgba(13, 91, 181, 0.1); color: #0d5bb5; border-right: 4px solid #0d5bb5; }
-        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
-        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 10px; }
-        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #cbd5e1; }
-    </style>
-</head>
-<body class="bg-gray-50 flex min-h-screen">
 
-    <?php include 'includes/sidebar.php'; ?>
+require_once 'includes/header.php';
+require_once 'includes/sidebar.php';
+?>
 
     <!-- Main Content -->
     <div class="flex-grow flex flex-col min-h-screen max-w-full overflow-x-hidden">
         
         <!-- Top Navigation -->
-        <header class="bg-white/80 backdrop-blur-md sticky top-0 z-30 border-b border-gray-100 px-8 py-4 flex items-center justify-between">
-            <div class="flex items-center gap-4">
-                <button class="lg:hidden text-gray-500 text-xl"><i class="fas fa-bars"></i></button>
-                <div>
-                    <h2 class="text-xl font-black text-gray-900 tracking-tight">Kelola Pengguna</h2>
-                    <p class="text-xs text-gray-400 font-bold">Manajemen akun pelanggan terdaftar</p>
-                </div>
-            </div>
-
-            <div class="flex items-center gap-3">
-                <div class="text-right hidden sm:block">
-                    <p class="text-sm font-black text-gray-900 leading-none"><?php echo $_SESSION['name']; ?></p>
-                    <p class="text-[10px] font-bold text-brand-primary uppercase tracking-widest mt-1">Super Admin</p>
-                </div>
-                <div class="w-10 h-10 rounded-full bg-brand-primary/10 flex items-center justify-center text-brand-primary border-2 border-brand-primary/20">
-                    <i class="fas fa-user-shield"></i>
-                </div>
-            </div>
-        </header>
+        <?php include 'includes/topbar.php'; ?>
 
         <!-- Page Body -->
         <main class="p-8 space-y-8 flex-grow">
             
-            <!-- Notification Container -->
-            <div id="notification-container" class="fixed top-8 right-8 z-[100] flex flex-col gap-3"></div>
+            <!-- Header -->
+            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                <div>
+                    <h1 class="text-2xl font-black text-gray-900 tracking-tight">Kelola <span class="text-brand-primary">Pengguna</span></h1>
+                    <p class="text-xs text-gray-400 font-bold uppercase tracking-widest mt-1">Manajemen akun pelanggan terdaftar</p>
+                </div>
+            </div>
+            
+
 
             <!-- Actions Bar -->
             <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -98,9 +51,9 @@ try {
             </div>
 
             <!-- Users Table -->
-            <div class="bg-white rounded-[2.5rem] shadow-sm border border-gray-50 overflow-hidden">
+            <div class="bg-white rounded-3xl shadow-sm border border-gray-50 overflow-hidden">
                 <div class="overflow-x-auto">
-                    <table class="w-full">
+                    <table class="w-full" id="users-table">
                         <thead class="bg-gray-50/50">
                             <tr>
                                 <th class="px-6 py-5 text-left text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] w-16">No</th>
@@ -161,13 +114,38 @@ try {
                         </tbody>
                     </table>
                 </div>
+                
+                <!-- Table Footer with Pagination -->
+                <div class="px-8 py-5 bg-gray-50/50 border-t border-gray-100 flex flex-col sm:flex-row justify-between items-center gap-4 shrink-0">
+                    <div class="flex items-center gap-3">
+                        <span class="text-xs font-bold text-gray-400 uppercase tracking-wider">Tampilkan</span>
+                        <div class="relative">
+                            <select id="entries-per-page" onchange="changeEntriesPerPage(this.value)" class="pl-4 pr-10 py-2 bg-white border border-gray-100 rounded-lg outline-none focus:border-brand-primary text-xs font-bold text-gray-700 appearance-none cursor-pointer shadow-sm">
+                                <option value="5">5</option>
+                                <option value="10" selected>10</option>
+                                <option value="25">25</option>
+                                <option value="50">50</option>
+                            </select>
+                            <i class="fas fa-chevron-down absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none text-[10px]"></i>
+                        </div>
+                        <span class="text-xs font-bold text-gray-400 uppercase tracking-wider">data</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <button onclick="prevPage()" id="prev-btn" class="w-8 h-8 rounded-lg border border-gray-100 bg-white flex items-center justify-center text-gray-400 hover:text-brand-primary hover:border-brand-primary/20 transition-all shadow-sm"><i class="fas fa-chevron-left text-xs"></i></button>
+                        <div id="page-numbers" class="flex items-center gap-1.5">
+                            <!-- Dynamic page numbers -->
+                        </div>
+                        <button onclick="nextPage()" id="next-btn" class="w-8 h-8 rounded-lg border border-gray-100 bg-white flex items-center justify-center text-gray-400 hover:text-brand-primary hover:border-brand-primary/20 transition-all shadow-sm"><i class="fas fa-chevron-right text-xs"></i></button>
+                    </div>
+                    <span class="text-xs font-bold text-gray-400 uppercase tracking-wider" id="entries-info"></span>
+                </div>
             </div>
         </main>
     </div>
 
     <!-- Modal Edit User -->
     <div id="modal-overlay" class="fixed inset-0 bg-black/60 backdrop-blur-md z-[1000] hidden items-center justify-center p-4 transition-all duration-300 opacity-0">
-        <div id="modal-content" class="bg-white rounded-[2.5rem] w-full max-w-2xl max-h-[90vh] overflow-hidden shadow-2xl transition-all duration-300 scale-90 opacity-0 flex flex-col">
+        <div id="modal-content" class="bg-white rounded-3xl w-full max-w-2xl max-h-[90vh] overflow-hidden shadow-2xl transition-all duration-300 scale-90 opacity-0 flex flex-col">
             <div class="px-10 py-8 border-b border-gray-50 flex justify-between items-center bg-gray-50/50 shrink-0">
                 <h3 id="modal-title" class="text-xl font-black text-gray-900 tracking-tight">Edit Pengguna</h3>
                 <button onclick="closeModal()" class="w-10 h-10 rounded-full hover:bg-gray-100 flex items-center justify-center text-gray-400 hover:text-gray-600 transition-all"><i class="fas fa-xmark text-xl"></i></button>
@@ -218,7 +196,7 @@ try {
 
     <!-- Modal Delete Confirmation -->
     <div id="delete-overlay" class="fixed inset-0 bg-black/60 backdrop-blur-md z-[1001] hidden items-center justify-center p-4 transition-all duration-300 opacity-0">
-        <div id="delete-content" class="bg-white rounded-[2.5rem] w-full max-w-md overflow-hidden shadow-2xl transition-all duration-300 scale-90 opacity-0 p-10 text-center">
+        <div id="delete-content" class="bg-white rounded-3xl w-full max-w-md overflow-hidden shadow-2xl transition-all duration-300 scale-90 opacity-0 p-10 text-center">
             <div class="w-20 h-20 rounded-full bg-red-50 flex items-center justify-center mx-auto mb-6">
                 <i class="fas fa-trash text-red-500 text-3xl"></i>
             </div>
@@ -236,7 +214,7 @@ try {
 
     <!-- Modal Reset Password -->
     <div id="reset-overlay" class="fixed inset-0 bg-black/60 backdrop-blur-md z-[1001] hidden items-center justify-center p-4 transition-all duration-300 opacity-0">
-        <div id="reset-content" class="bg-white rounded-[2.5rem] w-full max-w-md overflow-hidden shadow-2xl transition-all duration-300 scale-90 opacity-0 p-10 text-center">
+        <div id="reset-content" class="bg-white rounded-3xl w-full max-w-md overflow-hidden shadow-2xl transition-all duration-300 scale-90 opacity-0 p-10 text-center">
             <div class="w-20 h-20 rounded-full bg-amber-50 flex items-center justify-center mx-auto mb-6">
                 <i class="fas fa-key text-amber-500 text-3xl"></i>
             </div>
@@ -256,41 +234,8 @@ try {
     </div>
 
     <script>
-        function showSuccessNotification(message) { createNotification('success', message); }
-        function showErrorNotification(message) { createNotification('error', message); }
-
-        function createNotification(type, message) {
-            const container = document.getElementById('notification-container');
-            const id = 'notif-' + Date.now();
-            const bgColor = type === 'success' ? 'bg-[#0f965d]' : 'bg-[#dc2626]';
-            const icon = type === 'success' ? 'fa-check' : 'fa-xmark';
-            const title = type === 'success' ? 'BERHASIL!' : 'GAGAL!';
-
-            const notification = document.createElement('div');
-            notification.id = id;
-            notification.className = `${bgColor} text-white px-6 py-4 rounded-2xl shadow-2xl flex items-center gap-5 min-w-[320px] transition-all duration-500 transform translate-x-10 opacity-0`;
-            notification.innerHTML = `
-                <div class="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center shrink-0"><i class="fas ${icon} text-sm"></i></div>
-                <div class="flex-grow">
-                    <p class="text-[10px] font-black uppercase tracking-[0.2em] leading-none mb-1">${title}</p>
-                    <p class="text-sm font-bold">${message}</p>
-                </div>
-                <button onclick="removeNotification('${id}')" class="text-white/50 hover:text-white transition-colors"><i class="fas fa-xmark text-lg"></i></button>
-            `;
-            container.appendChild(notification);
-
-            // Trigger animation
-            setTimeout(() => {
-                notification.classList.remove('translate-x-10', 'opacity-0');
-            }, 10);
-
-            setTimeout(() => removeNotification(id), 4000);
-        }
-
-        function removeNotification(id) {
-            const el = document.getElementById(id);
-            if (el) { el.classList.add('opacity-0', 'translate-x-10'); setTimeout(() => el.remove(), 300); }
-        }
+        function showSuccessNotification(message) { showToast(message, 'success'); }
+        function showErrorNotification(message) { showToast(message, 'error'); }
 
         function openModal(type, data = null) {
             const overlay = document.getElementById('modal-overlay');
@@ -474,6 +419,104 @@ try {
                 btn.disabled = false;
             }
         };
+
+        // Client-side pagination engine
+        let currentPage = 1;
+        let rowsPerPage = 10;
+        let tableRows = [];
+
+        function initPagination() {
+            tableRows = Array.from(document.querySelectorAll('#users-table tbody tr')).filter(row => !row.cells[0].classList.contains('text-center'));
+            showPage(1);
+        }
+
+        function showPage(page) {
+            currentPage = page;
+            const totalRows = tableRows.length;
+            const totalPages = Math.ceil(totalRows / rowsPerPage) || 1;
+            
+            if (currentPage < 1) currentPage = 1;
+            if (currentPage > totalPages) currentPage = totalPages;
+
+            const startIdx = (currentPage - 1) * rowsPerPage;
+            const endIdx = Math.min(startIdx + rowsPerPage, totalRows);
+
+            tableRows.forEach((row, idx) => {
+                if (idx >= startIdx && idx < endIdx) {
+                    row.style.display = "";
+                } else {
+                    row.style.display = "none";
+                }
+            });
+
+            updatePaginationUI(totalPages, totalRows, startIdx, endIdx);
+        }
+
+        function updatePaginationUI(totalPages, totalRows, startIdx, endIdx) {
+            const prevBtn = document.getElementById('prev-btn');
+            const nextBtn = document.getElementById('next-btn');
+            const pageNumbers = document.getElementById('page-numbers');
+            const infoText = document.getElementById('entries-info');
+
+            if (prevBtn) prevBtn.disabled = currentPage === 1;
+            if (nextBtn) nextBtn.disabled = currentPage === totalPages;
+
+            // Apply opacity styles for disabled state
+            if (prevBtn) {
+                if (currentPage === 1) prevBtn.classList.add('opacity-40', 'cursor-not-allowed');
+                else prevBtn.classList.remove('opacity-40', 'cursor-not-allowed');
+            }
+            if (nextBtn) {
+                if (currentPage === totalPages) nextBtn.classList.add('opacity-40', 'cursor-not-allowed');
+                else nextBtn.classList.remove('opacity-40', 'cursor-not-allowed');
+            }
+
+            if (infoText) {
+                if (totalRows === 0) {
+                    infoText.innerText = "Tidak ada data";
+                } else {
+                    infoText.innerText = `Menampilkan ${startIdx + 1}-${endIdx} dari ${totalRows} data`;
+                }
+            }
+
+            if (pageNumbers) {
+                pageNumbers.innerHTML = "";
+                let startPage = Math.max(1, currentPage - 2);
+                let endPage = Math.min(totalPages, startPage + 4);
+                if (endPage - startPage < 4) {
+                    startPage = Math.max(1, endPage - 4);
+                }
+
+                for (let i = startPage; i <= endPage; i++) {
+                    const btn = document.createElement('button');
+                    btn.innerText = i;
+                    btn.onclick = () => showPage(i);
+                    btn.className = `w-8 h-8 rounded-lg text-xs font-black transition-all shadow-sm ${
+                        currentPage === i 
+                            ? 'bg-brand-primary text-white shadow-brand-primary/20' 
+                            : 'border border-gray-100 bg-white text-gray-500 hover:text-brand-primary hover:border-brand-primary/20'
+                    }`;
+                    pageNumbers.appendChild(btn);
+                }
+            }
+        }
+
+        function prevPage() {
+            if (currentPage > 1) showPage(currentPage - 1);
+        }
+
+        function nextPage() {
+            const totalPages = Math.ceil(tableRows.length / rowsPerPage) || 1;
+            if (currentPage < totalPages) showPage(currentPage + 1);
+        }
+
+        function changeEntriesPerPage(val) {
+            rowsPerPage = parseInt(val);
+            showPage(1);
+        }
+
+        window.addEventListener('DOMContentLoaded', () => {
+            initPagination();
+        });
     </script>
-</body>
-</html>
+<?php require_once 'includes/footer.php'; ?>

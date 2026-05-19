@@ -23,7 +23,7 @@
                                 <?php if ($selectedLivestock): ?>
                                     <input type="hidden" name="livestock_id" value="<?php echo $selectedLivestock['id']; ?>">
                                     <div class="w-full pl-4 pr-10 py-3.5 text-base bg-blue-50 border border-brand-primary/30 rounded-xl font-bold text-brand-primary flex items-center justify-between">
-                                        <span><?php echo ucfirst($selectedLivestock['type']); ?> - Rp <?php echo number_format($selectedLivestock['price'], 0, ',', '.'); ?></span>
+                                        <span><?php echo ucfirst($selectedLivestock['name'] ?? $selectedLivestock['type'] ?? $selectedLivestock['category'] ?? 'Hewan'); ?> - Rp <?php echo number_format($selectedLivestock['price'], 0, ',', '.'); ?></span>
                                         <a href="/lautan-ternak-pantura/marketplace" class="text-[10px] underline">Ganti</a>
                                     </div>
                                     <input type="hidden" id="target_type" value="<?php echo (int)$selectedLivestock['price']; ?>">
@@ -60,13 +60,61 @@
                             </div>
                         </div>
 
+                        <!-- Data Sohibul Qurban -->
+                        <div class="border-t border-gray-100 pt-6 mt-4">
+                            <div class="flex items-center justify-between mb-4">
+                                <h3 class="text-sm font-bold text-gray-800"><i class="fas fa-user-circle text-brand-primary mr-1.5"></i> Data Sohibul Qurban</h3>
+                                <button type="button" id="toggle-sq" class="text-brand-primary text-xs font-semibold hover:underline flex items-center gap-1">
+                                    <i class="fas fa-chevron-down text-[10px]"></i> Isi Data
+                                </button>
+                            </div>
+                            <div id="sq-section" class="space-y-5 hidden">
+                                <div>
+                                    <label class="block text-sm font-semibold text-gray-700 mb-2">Nama Lengkap <span class="text-red-500">*</span></label>
+                                    <input type="text" name="sq_name" id="sq_name" required
+                                        class="block w-full px-4 py-3.5 bg-gray-50 border border-gray-200 focus:outline-none focus:ring-4 focus:ring-brand-primary/20 focus:border-brand-primary sm:text-sm rounded-xl transition-all"
+                                        placeholder="Masukkan nama sohibul qurban">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-semibold text-gray-700 mb-2">Hubungan</label>
+                                    <select name="sq_relationship"
+                                        class="appearance-none block w-full px-4 py-3.5 bg-gray-50 border border-gray-200 focus:outline-none focus:ring-4 focus:ring-brand-primary/20 focus:border-brand-primary sm:text-sm rounded-xl transition-all cursor-pointer">
+                                        <option value="self">Diri Sendiri</option>
+                                        <option value="ayah">Ayah</option>
+                                        <option value="ibu">Ibu</option>
+                                        <option value="kakek">Kakek</option>
+                                        <option value="nenek">Nenek</option>
+                                        <option value="suami">Suami</option>
+                                        <option value="istri">Istri</option>
+                                        <option value="anak">Anak</option>
+                                        <option value="keluarga">Keluarga</option>
+                                        <option value="lainnya">Lainnya</option>
+                                    </select>
+                                </div>
+                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                    <div>
+                                        <label class="block text-sm font-semibold text-gray-700 mb-2">No. Telepon</label>
+                                        <input type="tel" name="sq_phone"
+                                            class="block w-full px-4 py-3.5 bg-gray-50 border border-gray-200 focus:outline-none focus:ring-4 focus:ring-brand-primary/20 focus:border-brand-primary sm:text-sm rounded-xl transition-all"
+                                            placeholder="08xxxxxxxxxx">
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-semibold text-gray-700 mb-2">Alamat</label>
+                                        <textarea name="sq_address" rows="1"
+                                            class="block w-full px-4 py-3.5 bg-gray-50 border border-gray-200 focus:outline-none focus:ring-4 focus:ring-brand-primary/20 focus:border-brand-primary sm:text-sm rounded-xl transition-all resize-none"
+                                            placeholder="Alamat lengkap"></textarea>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
                         <div class="pt-6">
                             <?php if(isset($_SESSION['user_id'])): ?>
                                 <button type="submit" class="w-full flex justify-center items-center py-4 px-4 rounded-xl shadow-md text-base font-bold text-white bg-brand-primary hover:bg-brand-dark focus:outline-none focus:ring-4 focus:ring-brand-primary/30 transition-all hover:-translate-y-0.5">
                                     <i class="fas fa-piggy-bank mr-2 text-lg"></i> Buat Rencana Tabungan
                                 </button>
                             <?php else: ?>
-                                <a href="/lautan-ternak-pantura/views/auth/register" class="w-full flex justify-center items-center py-4 px-4 rounded-xl shadow-sm text-base font-bold text-brand-primary bg-brand-light hover:bg-brand-light/80 border border-brand-primary/20 transition-all hover:-translate-y-0.5">
+                                <a href="/lautan-ternak-pantura/views/auth/login?action=register&redirect=<?php echo urlencode('/lautan-ternak-pantura/tabungan'); ?>" class="w-full flex justify-center items-center py-4 px-4 rounded-xl shadow-sm text-base font-bold text-brand-primary bg-brand-light hover:bg-brand-light/80 border border-brand-primary/20 transition-all hover:-translate-y-0.5">
                                     Daftar untuk menabung <i class="fas fa-arrow-right ml-2 mt-0.5 text-sm"></i>
                                 </a>
                             <?php endif; ?>
@@ -149,6 +197,16 @@
 
     // Initial calculation
     calculate();
+
+    // Toggle Sohibul Qurban section
+    document.getElementById('toggle-sq').addEventListener('click', function() {
+        const section = document.getElementById('sq-section');
+        const icon = this.querySelector('i');
+        section.classList.toggle('hidden');
+        icon.classList.toggle('fa-chevron-down');
+        icon.classList.toggle('fa-chevron-up');
+        this.querySelector('span').innerText = section.classList.contains('hidden') ? 'Isi Data' : 'Sembunyikan';
+    });
 </script>
 
 <?php require_once 'includes/footer.php'; ?>

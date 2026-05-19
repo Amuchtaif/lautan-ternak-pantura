@@ -1,4 +1,5 @@
 <?php
+ob_start();
 session_start();
 require_once '../../config/database.php';
 require_once '../../models/User.php';
@@ -6,6 +7,7 @@ require_once '../../models/User.php';
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $email = $_POST['email'];
     $password = $_POST['password'];
+    $redirect = isset($_POST['redirect']) ? $_POST['redirect'] : '';
 
     if (isset($conn)) {
         $userModel = new User($conn);
@@ -18,8 +20,10 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 $_SESSION['name'] = $userModel->name;
                 $_SESSION['role'] = $userModel->role;
                 
-                // Redirect based on role
-                if ($userModel->role === 'admin') {
+                // If redirect param exists, go there; otherwise role-based default
+                if ($redirect) {
+                    header("Location: " . $redirect);
+                } elseif ($userModel->role === 'admin') {
                     header("Location: /lautan-ternak-pantura/views/admin/dashboard");
                 } elseif ($userModel->role === 'breeder') {
                     header("Location: /lautan-ternak-pantura/views/breeder/dashboard");
@@ -38,7 +42,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     }
     
     // Redirect back to login on failure
-    header("Location: /lautan-ternak-pantura/views/auth/login");
+    $back = $redirect ? "/lautan-ternak-pantura/views/auth/login?redirect=" . urlencode($redirect) : "/lautan-ternak-pantura/views/auth/login";
+    header("Location: $back");
     exit;
 }
 ?>

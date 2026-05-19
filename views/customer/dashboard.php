@@ -1,5 +1,6 @@
 <?php 
 if (session_status() === PHP_SESSION_NONE) { session_start(); }
+require_once '../../config/database.php';
 
 // Check if user is logged in and is a customer
 if(!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'customer') {
@@ -20,6 +21,14 @@ try {
     ");
     $stmt->execute([$customerId]);
     $activePlan = $stmt->fetch(PDO::FETCH_ASSOC);
+
+    // Fetch Sohibul Qurban data for the active plan
+    $sohibulQurban = null;
+    if ($activePlan) {
+        $stmt = $conn->prepare("SELECT * FROM sohibul_qurban WHERE plan_id = ? LIMIT 1");
+        $stmt->execute([$activePlan['id']]);
+        $sohibulQurban = $stmt->fetch(PDO::FETCH_ASSOC);
+    }
 
     // 2. Total Saved
     $totalSaved = 0;
@@ -56,23 +65,21 @@ require_once 'includes/header.php';
                 <h1 class="text-3xl font-black text-gray-900 tracking-tight">Dashboard <span class="text-brand-primary">Tabungan</span></h1>
                 <p class="mt-1 text-sm text-gray-400 font-bold uppercase tracking-widest">Selamat datang kembali, <?php echo $_SESSION['name']; ?>!</p>
             </div>
-            <a href="/lautan-ternak-pantura/marketplace" class="bg-brand-primary text-white px-6 py-3 rounded-2xl shadow-xl shadow-brand-primary/20 hover:bg-brand-dark transition-all text-sm font-black flex items-center gap-2">
-                <i class="fas fa-search"></i> Cari Hewan
-            </a>
+            <div class="flex items-center gap-3">
+                <a href="/lautan-ternak-pantura/views/customer/profile" class="bg-white text-gray-700 px-6 py-3 rounded-2xl shadow-sm border border-gray-100 hover:bg-gray-50 transition-all text-sm font-black flex items-center gap-2">
+                    <i class="fas fa-user-cog"></i> Profil
+                </a>
+                <a href="/lautan-ternak-pantura/marketplace" class="bg-brand-primary text-white px-6 py-3 rounded-2xl shadow-xl shadow-brand-primary/20 hover:bg-brand-dark transition-all text-sm font-black flex items-center gap-2">
+                    <i class="fas fa-search"></i> Cari Hewan
+                </a>
+            </div>
         </div>
 
-        <?php if (isset($_GET['success'])): ?>
-            <div class="mb-8 bg-emerald-50 border border-emerald-100 p-4 rounded-2xl flex items-center gap-4 text-emerald-700 animate-in fade-in slide-in-from-top-4">
-                <div class="w-10 h-10 rounded-full bg-emerald-100 flex items-center justify-center shrink-0">
-                    <i class="fas fa-check"></i>
-                </div>
-                <p class="text-sm font-bold">Rencana tabungan Anda telah berhasil dibuat! Mulai menabung sekarang.</p>
-            </div>
-        <?php endif; ?>
+
 
         <!-- Stats -->
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-            <div class="bg-white rounded-[2rem] shadow-sm p-8 border border-gray-100 flex items-center group hover:shadow-xl transition-all duration-500">
+            <div class="bg-white rounded-2xl shadow-sm p-8 border border-gray-100 flex items-center group hover:shadow-xl transition-all duration-500">
                 <div class="w-16 h-16 rounded-2xl bg-brand-primary/10 text-brand-primary flex items-center justify-center text-2xl group-hover:scale-110 transition-transform">
                     <i class="fas fa-wallet"></i>
                 </div>
@@ -81,7 +88,7 @@ require_once 'includes/header.php';
                     <p class="text-2xl font-black text-gray-900">Rp <?php echo number_format($totalSaved, 0, ',', '.'); ?></p>
                 </div>
             </div>
-            <div class="bg-white rounded-[2rem] shadow-sm p-8 border border-gray-100 flex items-center group hover:shadow-xl transition-all duration-500">
+            <div class="bg-white rounded-2xl shadow-sm p-8 border border-gray-100 flex items-center group hover:shadow-xl transition-all duration-500">
                 <div class="w-16 h-16 rounded-2xl bg-blue-500/10 text-blue-500 flex items-center justify-center text-2xl group-hover:scale-110 transition-transform">
                     <i class="fas fa-bullseye"></i>
                 </div>
@@ -90,7 +97,7 @@ require_once 'includes/header.php';
                     <p class="text-2xl font-black text-gray-900">Rp <?php echo $activePlan ? number_format($activePlan['target_amount'], 0, ',', '.') : '0'; ?></p>
                 </div>
             </div>
-            <div class="bg-white rounded-[2rem] shadow-sm p-8 border border-gray-100 flex items-center group hover:shadow-xl transition-all duration-500">
+            <div class="bg-white rounded-2xl shadow-sm p-8 border border-gray-100 flex items-center group hover:shadow-xl transition-all duration-500">
                 <div class="w-16 h-16 rounded-2xl bg-amber-500/10 text-amber-500 flex items-center justify-center text-2xl group-hover:scale-110 transition-transform">
                     <i class="fas fa-clock"></i>
                 </div>
@@ -103,7 +110,7 @@ require_once 'includes/header.php';
 
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
             <!-- Rencana Tabungan Aktif -->
-            <div class="bg-white rounded-[2.5rem] shadow-sm border border-gray-50 overflow-hidden flex flex-col">
+            <div class="bg-white rounded-3xl shadow-sm border border-gray-50 overflow-hidden flex flex-col">
                 <div class="px-10 py-8 border-b border-gray-50 flex justify-between items-center bg-gray-50/50">
                     <h3 class="text-xl font-black text-gray-900 tracking-tight">Rencana Tabungan</h3>
                     <?php if ($activePlan): ?>
@@ -129,6 +136,33 @@ require_once 'includes/header.php';
                         <div class="w-full bg-gray-100 rounded-full h-4 mb-8 p-1 overflow-hidden">
                             <div class="bg-brand-primary h-full rounded-full transition-all duration-1000 shadow-lg shadow-brand-primary/20" style="width: <?php echo ($totalSaved / $activePlan['target_amount']) * 100; ?>%"></div>
                         </div>
+
+                        <?php if ($sohibulQurban): ?>
+                        <div class="mb-8 p-5 rounded-2xl bg-brand-light/40 border border-brand-primary/10">
+                            <div class="flex items-center gap-2 mb-3">
+                                <i class="fas fa-user-circle text-brand-primary"></i>
+                                <span class="text-[10px] font-black text-brand-primary uppercase tracking-widest">Sohibul Qurban</span>
+                            </div>
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <p class="text-sm font-black text-gray-900"><?php echo htmlspecialchars($sohibulQurban['name']); ?></p>
+                                    <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-0.5">
+                                        <?php
+                                        $relMap = ['self' => 'Diri Sendiri', 'ayah' => 'Ayah', 'ibu' => 'Ibu', 'kakek' => 'Kakek', 'nenek' => 'Nenek', 'suami' => 'Suami', 'istri' => 'Istri', 'anak' => 'Anak', 'keluarga' => 'Keluarga', 'lainnya' => 'Lainnya'];
+                                        echo $relMap[$sohibulQurban['relationship']] ?? $sohibulQurban['relationship'];
+                                        ?>
+                                        <?php if ($sohibulQurban['phone']): ?> &middot; <?php echo htmlspecialchars($sohibulQurban['phone']); ?><?php endif; ?>
+                                    </p>
+                                </div>
+                                <?php if ($sohibulQurban['address']): ?>
+                                <div class="text-right max-w-[180px]">
+                                    <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Alamat</p>
+                                    <p class="text-xs text-gray-600"><?php echo htmlspecialchars($sohibulQurban['address']); ?></p>
+                                </div>
+                                <?php endif; ?>
+                            </div>
+                        </div>
+                        <?php endif; ?>
 
                         <div class="grid grid-cols-2 gap-4 mb-8">
                             <div class="p-4 rounded-2xl bg-gray-50">
@@ -159,7 +193,7 @@ require_once 'includes/header.php';
             </div>
 
             <!-- Riwayat Setoran -->
-            <div class="bg-white rounded-[2.5rem] shadow-sm border border-gray-50 overflow-hidden">
+            <div class="bg-white rounded-3xl shadow-sm border border-gray-50 overflow-hidden">
                 <div class="px-10 py-8 border-b border-gray-50 bg-gray-50/50">
                     <h3 class="text-xl font-black text-gray-900 tracking-tight">Riwayat Setoran</h3>
                 </div>
@@ -196,7 +230,7 @@ require_once 'includes/header.php';
 
 <!-- Payment Modal -->
 <div id="payment-modal" class="fixed inset-0 bg-black/60 backdrop-blur-md z-[1000] hidden items-center justify-center p-4 transition-all duration-300 opacity-0">
-    <div class="bg-white rounded-[2.5rem] w-full max-w-lg overflow-hidden shadow-2xl transition-all duration-300 scale-90 opacity-0" id="modal-content">
+    <div class="bg-white rounded-3xl w-full max-w-lg overflow-hidden shadow-2xl transition-all duration-300 scale-90 opacity-0" id="modal-content">
         <div class="px-10 py-8 border-b border-gray-50 flex justify-between items-center bg-gray-50/50">
             <h3 class="text-xl font-black text-gray-900 tracking-tight">Setor Tabungan</h3>
             <button onclick="closePaymentModal()" class="w-10 h-10 rounded-full hover:bg-gray-100 flex items-center justify-center text-gray-400 hover:text-gray-600 transition-all"><i class="fas fa-xmark text-xl"></i></button>

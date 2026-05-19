@@ -13,7 +13,7 @@ if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'admin') {
 // Fetch Dynamic Stats
 try {
     // Total Users
-    $stmt = $conn->query("SELECT COUNT(*) FROM users");
+    $stmt = $conn->query("SELECT COUNT(*) FROM users WHERE role != 'admin'");
     $totalUsers = $stmt->fetchColumn();
 
     // Total Active Livestock
@@ -72,16 +72,10 @@ try {
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap"
         rel="stylesheet">
-    <link rel="icon" type="image/ico" href="/lautan-ternak-pantura/assets/images/favicon.ico">
+    <link rel="icon" type="image/x-icon" href="/lautan-ternak-pantura/assets/images/favicon.ico">
     <style>
         body {
             font-family: 'Plus Jakarta Sans', sans-serif;
-        }
-
-        .sidebar-link.active {
-            background-color: rgba(13, 91, 181, 0.1);
-            color: #0d5bb5;
-            border-right: 4px solid #0d5bb5;
         }
     </style>
 </head>
@@ -94,47 +88,25 @@ try {
     <div class="flex-grow flex flex-col min-h-screen max-w-full overflow-x-hidden">
 
         <!-- Top Navigation -->
-        <header
-            class="bg-white/80 backdrop-blur-md sticky top-0 z-30 border-b border-gray-100 px-8 py-4 flex items-center justify-between">
-            <div class="flex items-center gap-4">
-                <button class="lg:hidden text-gray-500 text-xl"><i class="fas fa-bars"></i></button>
-                <div>
-                    <h2 class="text-xl font-black text-gray-900 tracking-tight">Dashboard Overview</h2>
-                    <p class="text-xs text-gray-400 font-bold">Selamat datang kembali, <?php echo $_SESSION['name']; ?>
-                    </p>
-                </div>
-            </div>
-
-            <div class="flex items-center gap-6">
-                <button class="relative p-2 text-gray-400 hover:text-brand-primary transition-colors">
-                    <i class="far fa-bell text-xl"></i>
-                    <span class="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full border-2 border-white"></span>
-                </button>
-                <div class="h-10 w-[1px] bg-gray-100"></div>
-                <div class="flex items-center gap-3">
-                    <div class="text-right hidden sm:block">
-                        <p class="text-sm font-black text-gray-900 leading-none"><?php echo $_SESSION['name']; ?></p>
-                        <p class="text-[10px] font-bold text-brand-primary uppercase tracking-widest mt-1">Super Admin
-                        </p>
-                    </div>
-                    <div
-                        class="w-10 h-10 rounded-full bg-brand-primary/10 flex items-center justify-center text-brand-primary border-2 border-brand-primary/20">
-                        <i class="fas fa-user-shield"></i>
-                    </div>
-                </div>
-            </div>
-        </header>
+        <?php include 'includes/topbar.php'; ?>
 
         <!-- Page Body -->
         <main class="p-8 space-y-8 flex-grow">
 
-            <!-- Notification Container (Standard Patokan) -->
-            <div id="notification-container" class="fixed top-8 right-8 z-[100] flex flex-col gap-3"></div>
+            <!-- Header -->
+            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                <div>
+                    <h1 class="text-2xl font-black text-gray-900 tracking-tight">Dashboard <span class="text-brand-primary">Overview</span></h1>
+                    <p class="text-xs text-gray-400 font-bold uppercase tracking-widest mt-1">Selamat datang kembali, <?php echo htmlspecialchars($_SESSION['name']); ?>!</p>
+                </div>
+            </div>
+
+
 
             <!-- Quick Stats -->
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                 <div
-                    class="bg-white p-6 rounded-3xl shadow-sm border border-gray-50 hover:shadow-xl hover:shadow-brand-primary/5 transition-all group">
+                    class="bg-white p-6 rounded-2xl shadow-sm border border-gray-50 hover:shadow-xl hover:shadow-brand-primary/5 transition-all group">
                     <div class="flex items-center justify-between mb-4">
                         <div
                             class="w-12 h-12 rounded-2xl bg-brand-primary/10 text-brand-primary flex items-center justify-center text-xl group-hover:scale-110 transition-transform">
@@ -148,7 +120,7 @@ try {
                 </div>
 
                 <div
-                    class="bg-white p-6 rounded-3xl shadow-sm border border-gray-50 hover:shadow-xl hover:shadow-blue-500/5 transition-all group">
+                    class="bg-white p-6 rounded-2xl shadow-sm border border-gray-50 hover:shadow-xl hover:shadow-blue-500/5 transition-all group">
                     <div class="flex items-center justify-between mb-4">
                         <div
                             class="w-12 h-12 rounded-2xl bg-blue-500/10 text-blue-500 flex items-center justify-center text-xl group-hover:scale-110 transition-transform">
@@ -163,7 +135,7 @@ try {
                 </div>
 
                 <div
-                    class="bg-white p-6 rounded-3xl shadow-sm border border-gray-50 hover:shadow-xl hover:shadow-amber-500/5 transition-all group">
+                    class="bg-white p-6 rounded-2xl shadow-sm border border-gray-50 hover:shadow-xl hover:shadow-amber-500/5 transition-all group">
                     <div class="flex items-center justify-between mb-4">
                         <div
                             class="w-12 h-12 rounded-2xl bg-amber-500/10 text-amber-500 flex items-center justify-center text-xl group-hover:scale-110 transition-transform">
@@ -178,7 +150,7 @@ try {
                 </div>
 
                 <div
-                    class="bg-white p-6 rounded-3xl shadow-sm border border-gray-50 hover:shadow-xl hover:shadow-purple-500/5 transition-all group">
+                    class="bg-white p-6 rounded-2xl shadow-sm border border-gray-50 hover:shadow-xl hover:shadow-purple-500/5 transition-all group">
                     <div class="flex items-center justify-between mb-4">
                         <div
                             class="w-12 h-12 rounded-2xl bg-purple-500/10 text-purple-500 flex items-center justify-center text-xl group-hover:scale-110 transition-transform">
@@ -195,7 +167,7 @@ try {
             </div>
 
             <!-- Table Section -->
-            <div class="bg-white rounded-[2.5rem] shadow-sm border border-gray-50 overflow-hidden">
+            <div class="bg-white rounded-2xl shadow-sm border border-gray-50 overflow-hidden">
                 <div
                     class="px-8 py-8 border-b border-gray-50 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                     <div>
@@ -297,56 +269,8 @@ try {
     </div>
 
     <script>
-        function showSuccessNotification(message) {
-            createNotification('success', message);
-        }
-
-        function showErrorNotification(message) {
-            createNotification('error', message);
-        }
-
-        function createNotification(type, message) {
-            const container = document.getElementById('notification-container');
-            const id = 'notif-' + Date.now();
-
-            const bgColor = type === 'success' ? 'bg-[#0f965d]' : 'bg-[#dc2626]';
-            const icon = type === 'success' ? 'fa-check' : 'fa-xmark';
-            const title = type === 'success' ? 'BERHASIL!' : 'GAGAL!';
-
-            const notification = document.createElement('div');
-            notification.id = id;
-            notification.className = `${bgColor} text-white px-6 py-4 rounded-2xl shadow-2xl flex items-center gap-5 min-w-[320px] animate-in slide-in-from-right duration-300 transform transition-all`;
-
-            notification.innerHTML = `
-                <div class="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center shrink-0">
-                    <i class="fas ${icon} text-sm"></i>
-                </div>
-                <div class="flex-grow">
-                    <p class="text-[10px] font-black uppercase tracking-[0.2em] leading-none mb-1">${title}</p>
-                    <p class="text-sm font-bold">${message}</p>
-                </div>
-                <button onclick="removeNotification('${id}')" class="text-white/50 hover:text-white transition-colors">
-                    <i class="fas fa-xmark text-lg"></i>
-                </button>
-            `;
-
-            container.appendChild(notification);
-
-            // Auto-hide after 4 seconds
-            setTimeout(() => {
-                removeNotification(id);
-            }, 4000);
-        }
-
-        function removeNotification(id) {
-            const el = document.getElementById(id);
-            if (el) {
-                el.classList.add('opacity-0', 'translate-x-10');
-                setTimeout(() => {
-                    el.remove();
-                }, 300);
-            }
-        }
+        function showSuccessNotification(message) { showToast(message, 'success'); }
+        function showErrorNotification(message) { showToast(message, 'error'); }
     </script>
 </body>
 

@@ -23,3 +23,7 @@ INSERT INTO savings_transactions (plan_id, amount, proof_of_payment, status) VAL
 (1, 1750000, 'dummy_proof1.jpg', 'verified'),
 (1, 1750000, 'dummy_proof2.jpg', 'pending'),
 (2, 350000, 'dummy_proof3.jpg', 'verified');
+
+INSERT INTO sohibul_qurban (plan_id, name, phone, address, relationship) VALUES
+(1, 'Siti Customer', '08123456789', 'Jl. Merdeka No. 10, Cirebon', 'self'),
+(2, 'Agus Customer', '08198765432', 'Jl. Sudirman No. 5, Cirebon', 'self');

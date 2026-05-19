@@ -23,16 +23,19 @@ if (empty($_POST)) {
     if ($data) { $_POST = $data; }
 }
 
-$type = $_POST['type'] ?? null;
-$category = $_POST['category'] ?? null;
+$code = $_POST['code'] ?? null;
+$name = $_POST['name'] ?? null;
+$breed = $_POST['breed'] ?? null;
 $weight = $_POST['weight'] ?? null;
-$age = $_POST['age'] ?? null;
+$gender = $_POST['gender'] ?? 'male';
 $price = $_POST['price'] ?? null;
+$purchase_price = $_POST['purchase_price'] ?? null;
+$stock = $_POST['stock'] ?? 1;
 $status = $_POST['status'] ?? 'available';
-$health_condition = $_POST['health_condition'] ?? null;
+$description = $_POST['description'] ?? null;
 
 // Handle image upload
-$image_url = 'https://images.unsplash.com/photo-1546445317-29f4545e9d53?auto=format&fit=crop&q=80';
+$image = 'https://images.unsplash.com/photo-1546445317-29f4545e9d53?auto=format&fit=crop&q=80';
 if (isset($_FILES['image']) && $_FILES['image']['error'] === UPLOAD_ERR_OK) {
     $uploadDir = '../../assets/uploads/livestock/';
     if (!is_dir($uploadDir)) {
@@ -43,18 +46,18 @@ if (isset($_FILES['image']) && $_FILES['image']['error'] === UPLOAD_ERR_OK) {
     $uploadPath = $uploadDir . $filename;
     
     if (move_uploaded_file($_FILES['image']['tmp_name'], $uploadPath)) {
-        $image_url = '/lautan-ternak-pantura/assets/uploads/livestock/' . $filename;
+        $image = '/lautan-ternak-pantura/assets/uploads/livestock/' . $filename;
     }
 }
 
-if (!$type || !$category || !$weight || !$age || !$price) {
+if (!$code || !$name || !$breed || !$weight || !$price || $purchase_price === null || $purchase_price === '') {
     echo json_encode(['success' => false, 'message' => 'Semua field wajib diisi']);
     exit();
 }
 
 try {
-    $stmt = $conn->prepare("INSERT INTO livestock (type, category, weight, age, price, status, health_condition, image_url, breeder_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)");
-    $stmt->execute([$type, $category, $weight, $age, $price, $status, $health_condition, $image_url, $_SESSION['user_id']]);
+    $stmt = $conn->prepare("INSERT INTO livestock (code, name, breed, weight, gender, price, purchase_price, stock, status, image, description) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+    $stmt->execute([$code, $name, $breed, $weight, $gender, $price, $purchase_price, $stock, $status, $image, $description]);
 
     echo json_encode(['success' => true, 'message' => 'Data hewan baru berhasil ditambahkan']);
 } catch (PDOException $e) {
