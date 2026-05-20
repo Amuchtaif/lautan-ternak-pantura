@@ -70,9 +70,8 @@ try {
 
     // Validate mime-type securely
     $tmpPath = $file['tmp_name'];
-    $finfo = finfo_open(FILEINFO_MIME_TYPE);
-    $mimeType = finfo_file($finfo, $tmpPath);
-    finfo_close($finfo);
+    $finfo = new finfo(FILEINFO_MIME_TYPE);
+    $mimeType = $finfo->file($tmpPath);
 
     $allowedMimeTypes = ['image/jpeg', 'image/png', 'image/webp'];
     if (!in_array($mimeType, $allowedMimeTypes)) {

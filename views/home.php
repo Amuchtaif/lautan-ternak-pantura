@@ -1,4 +1,4 @@
-<?php require_once 'includes/header.php'; ?>
+<?php require_once __DIR__ . '/../includes/header.php'; ?>
 
 <!-- Modern Split Hero Section -->
 <div class="relative bg-white overflow-hidden pt-16 pb-20 lg:pt-24 lg:pb-28">
@@ -362,4 +362,4 @@
     </div>
 </div>
 
-<?php require_once 'includes/footer.php'; ?>
+<?php require_once __DIR__ . '/../includes/footer.php'; ?>

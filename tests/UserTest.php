@@ -1,5 +1,6 @@
 <?php
 // User Unit Tests
+global $db;
 
 it('dapat membuat user baru di database', function() use ($db) {
     // Arrange

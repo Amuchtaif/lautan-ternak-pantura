@@ -1,6 +1,6 @@
 <?php 
 if (session_status() === PHP_SESSION_NONE) { session_start(); }
-require_once 'includes/header.php'; 
+require_once __DIR__ . '/../../includes/header.php'; 
 ?>
 
 <div class="bg-gray-50 min-h-screen py-12">
@@ -89,4 +89,4 @@ require_once 'includes/header.php';
     </div>
 </div>
 
-<?php require_once 'includes/footer.php'; ?>
+<?php require_once __DIR__ . '/../../includes/footer.php'; ?>

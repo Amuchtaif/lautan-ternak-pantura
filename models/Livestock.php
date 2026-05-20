@@ -51,6 +51,10 @@ class Livestock {
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
+    /**
+     * @param int $id
+     * @return array|false
+     */
     public function getById($id) {
         $query = "SELECT * FROM " . $this->table . " WHERE id = ?";
         $stmt = $this->conn->prepare($query);

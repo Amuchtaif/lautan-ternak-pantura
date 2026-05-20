@@ -4,8 +4,14 @@ require_once 'models/Livestock.php';
 
 class PurchaseController {
 
+    /**
+     * @return PDO
+     */
     private function dbConnect() {
-        require 'config/database.php';
+        global $conn;
+        if (!isset($conn)) {
+            require 'config/database.php';
+        }
         return $conn;
     }
 

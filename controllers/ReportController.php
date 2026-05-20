@@ -3,8 +3,14 @@ require_once 'models/Report.php';
 
 class ReportController {
 
+    /**
+     * @return PDO
+     */
     private function dbConnect() {
-        require 'config/database.php';
+        global $conn;
+        if (!isset($conn)) {
+            require 'config/database.php';
+        }
         return $conn;
     }
 

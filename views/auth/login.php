@@ -202,6 +202,32 @@ $redirectUrl = isset($_GET['redirect']) ? $_GET['redirect'] : '';
                                 class="text-brand-primary hover:underline ml-1 font-black">Daftar Akun Baru</button>
                         </p>
                     </div>
+
+                    <!-- Demo Account Info Helper Card -->
+                    <div class="mt-6 p-4 rounded-2xl bg-amber-50 border border-amber-200/60 shadow-sm relative overflow-hidden group">
+                        <div class="absolute -right-4 -bottom-4 w-12 h-12 bg-amber-100/40 rounded-full blur-lg"></div>
+                        <h4 class="text-xs font-bold text-amber-800 flex items-center gap-1.5 mb-2.5">
+                            <i class="fas fa-lightbulb text-amber-600 animate-pulse"></i>
+                            <span>💡 Akun Uji Coba (Demo Credentials)</span>
+                        </h4>
+                        <div class="space-y-1.5 text-xs text-amber-700 font-medium">
+                            <div class="flex items-center justify-between border-b border-amber-100 pb-1.5">
+                                <span>👑 Admin:</span>
+                                <span class="font-bold bg-amber-100/80 px-2 py-0.5 rounded cursor-pointer hover:bg-amber-200/80 transition" onclick="fillDemo('admin@ltp.com', 'password123')">admin@ltp.com <span class="text-[9px] text-amber-500 font-normal">(Klik)</span></span>
+                            </div>
+                            <div class="flex items-center justify-between border-b border-amber-100 py-1.5">
+                                <span>👤 Pelanggan:</span>
+                                <span class="font-bold bg-amber-100/80 px-2 py-0.5 rounded cursor-pointer hover:bg-amber-200/80 transition" onclick="fillDemo('siti@customer.com', 'password123')">siti@customer.com <span class="text-[9px] text-amber-500 font-normal">(Klik)</span></span>
+                            </div>
+                            <div class="flex items-center justify-between pt-1.5">
+                                <span>👨‍🌾 Peternak:</span>
+                                <span class="font-bold bg-amber-100/80 px-2 py-0.5 rounded cursor-pointer hover:bg-amber-200/80 transition" onclick="fillDemo('ahmad@breeder.com', 'password123')">ahmad@breeder.com <span class="text-[9px] text-amber-500 font-normal">(Klik)</span></span>
+                            </div>
+                            <div class="text-[10px] text-amber-600 mt-2 text-center italic font-semibold">
+                                * Kata Sandi untuk semua akun demo: <span class="underline">password123</span>
+                            </div>
+                        </div>
+                    </div>
                 </form>
             </div>
 
@@ -320,6 +346,10 @@ $redirectUrl = isset($_GET['redirect']) ? $_GET['redirect'] : '';
         // Apply Initial State
         if (!isLogin) {
             applyState(false);
+            loginContent.classList.add('hidden', 'opacity-0', 'scale-95');
+            loginContent.classList.remove('opacity-100', 'scale-100');
+            registerContent.classList.remove('hidden', 'opacity-0', 'scale-95');
+            registerContent.classList.add('opacity-100', 'scale-100');
         }
 
         function toggleAuth() {
@@ -366,6 +396,16 @@ $redirectUrl = isset($_GET['redirect']) ? $_GET['redirect'] : '';
                 passwordInput.type = 'password';
                 eyeIcon.classList.remove('fa-eye-slash');
                 eyeIcon.classList.add('fa-eye');
+            }
+        }
+
+        function fillDemo(email, password) {
+            const emailInput = document.querySelector('input[name="email"]');
+            const passwordInput = document.querySelector('#login-password');
+            if (emailInput && passwordInput) {
+                emailInput.value = email;
+                passwordInput.value = password;
+                showToast("Akun uji coba berhasil diisi! Silakan tekan 'Masuk Sekarang'.", "info");
             }
         }
 

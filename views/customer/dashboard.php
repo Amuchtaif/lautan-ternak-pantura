@@ -10,51 +10,56 @@ if(!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'customer') {
 
 $customerId = $_SESSION['user_id'];
 
-try {
-    // 1. Fetch Active Savings Plan
-    $stmt = $conn->prepare("
-        SELECT sp.*, l.type as animal_type, l.image_url as animal_image, l.price as animal_price
-        FROM savings_plans sp
-        LEFT JOIN livestock l ON sp.livestock_id = l.id
-        WHERE sp.customer_id = ? AND sp.status = 'active'
-        ORDER BY sp.created_at DESC LIMIT 1
-    ");
-    $stmt->execute([$customerId]);
-    $activePlan = $stmt->fetch(PDO::FETCH_ASSOC);
+$activePlan = null;
+$sohibulQurban = null;
+$totalSaved = 0;
+$transactions = [];
 
-    // Fetch Sohibul Qurban data for the active plan
-    $sohibulQurban = null;
-    if ($activePlan) {
-        $stmt = $conn->prepare("SELECT * FROM sohibul_qurban WHERE plan_id = ? LIMIT 1");
-        $stmt->execute([$activePlan['id']]);
-        $sohibulQurban = $stmt->fetch(PDO::FETCH_ASSOC);
+if (isset($conn)) {
+    try {
+        // 1. Fetch Active Savings Plan
+        $stmt = $conn->prepare("
+            SELECT sp.*, l.type as animal_type, l.image_url as animal_image, l.price as animal_price
+            FROM savings_plans sp
+            LEFT JOIN livestock l ON sp.livestock_id = l.id
+            WHERE sp.customer_id = ? AND sp.status = 'active'
+            ORDER BY sp.created_at DESC LIMIT 1
+        ");
+        $stmt->execute([$customerId]);
+        $activePlan = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        // Fetch Sohibul Qurban data for the active plan
+        if ($activePlan) {
+            $stmt = $conn->prepare("SELECT * FROM sohibul_qurban WHERE plan_id = ? LIMIT 1");
+            $stmt->execute([$activePlan['id']]);
+            $sohibulQurban = $stmt->fetch(PDO::FETCH_ASSOC);
+        }
+
+        // 2. Total Saved
+        if ($activePlan) {
+            $stmt = $conn->prepare("SELECT SUM(amount) FROM savings_transactions WHERE plan_id = ? AND status = 'verified'");
+            $stmt->execute([$activePlan['id']]);
+            $totalSaved = $stmt->fetchColumn() ?: 0;
+        }
+
+        // 3. Recent Transactions
+        $stmt = $conn->prepare("
+            SELECT st.*, sp.target_amount, l.type as animal_type
+            FROM savings_transactions st
+            JOIN savings_plans sp ON st.plan_id = sp.id
+            LEFT JOIN livestock l ON sp.livestock_id = l.id
+            WHERE sp.customer_id = ?
+            ORDER BY st.created_at DESC LIMIT 5
+        ");
+        $stmt->execute([$customerId]);
+        $transactions = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+    } catch (PDOException $e) {
+        $errorMsg = $e->getMessage();
     }
-
-    // 2. Total Saved
-    $totalSaved = 0;
-    if ($activePlan) {
-        $stmt = $conn->prepare("SELECT SUM(amount) FROM savings_transactions WHERE plan_id = ? AND status = 'verified'");
-        $stmt->execute([$activePlan['id']]);
-        $totalSaved = $stmt->fetchColumn() ?: 0;
-    }
-
-    // 3. Recent Transactions
-    $stmt = $conn->prepare("
-        SELECT st.*, sp.target_amount, l.type as animal_type
-        FROM savings_transactions st
-        JOIN savings_plans sp ON st.plan_id = sp.id
-        LEFT JOIN livestock l ON sp.livestock_id = l.id
-        WHERE sp.customer_id = ?
-        ORDER BY st.created_at DESC LIMIT 5
-    ");
-    $stmt->execute([$customerId]);
-    $transactions = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
-} catch (PDOException $e) {
-    $errorMsg = $e->getMessage();
 }
 
-require_once 'includes/header.php'; 
+require_once __DIR__ . '/../../includes/header.php'; 
 ?>
 
 <div class="bg-gray-50 min-h-screen py-8">
@@ -340,5 +345,5 @@ require_once 'includes/header.php';
     }
 </script>
 
-<?php require_once 'includes/footer.php'; ?>
+<?php require_once __DIR__ . '/../../includes/footer.php'; ?>
 

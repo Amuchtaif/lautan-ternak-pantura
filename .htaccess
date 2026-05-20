@@ -14,10 +14,10 @@ RewriteRule ^favicon\.ico$ assets/images/favicon.ico [L]
 
 # 4. Jika request (tanpa .php) adalah file .php yang valid di server, maka proses file tersebut
 RewriteCond %{REQUEST_FILENAME}.php -f
-RewriteRule ^(.*)$ $1.php [L]
+RewriteRule ^(.*)$ $1.php [QSA,L]
 
 RewriteCond %{DOCUMENT_ROOT}/$1.php -f
-RewriteRule ^(.*)$ $1.php [L]
+RewriteRule ^(.*)$ $1.php [QSA,L]
 
 # 4. Jika file atau folder fisik ada (misal aset gambar, css, js), biarkan dilayani langsung
 RewriteCond %{REQUEST_FILENAME} -d [OR]

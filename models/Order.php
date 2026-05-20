@@ -1,12 +1,22 @@
 <?php
 class Order {
+    /**
+     * @var PDO
+     */
     private $conn;
     private $table = 'orders';
 
+    /**
+     * @param PDO $db
+     */
     public function __construct($db) {
         $this->conn = $db;
     }
 
+    /**
+     * @param array $data
+     * @return int|string|false
+     */
     public function create($data) {
         $query = "INSERT INTO " . $this->table . " 
             (order_code, customer_id, livestock_id, qty, livestock_price_snapshot, total_price, status, notes) 
@@ -53,6 +63,10 @@ class Order {
         return $row;
     }
 
+    /**
+     * @param int|string $id
+     * @return array|false
+     */
     public function getById($id) {
         $query = "SELECT o.*, 
                  u.name as customer_name, u.email as customer_email, u.phone as customer_phone, u.address as customer_address,

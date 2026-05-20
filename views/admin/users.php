@@ -15,7 +15,7 @@ try {
     $errorMsg = $e->getMessage();
 }
 
-require_once 'includes/header.php';
+require_once __DIR__ . '/includes/header.php';
 require_once 'includes/sidebar.php';
 ?>
 
@@ -519,4 +519,4 @@ require_once 'includes/sidebar.php';
             initPagination();
         });
     </script>
-<?php require_once 'includes/footer.php'; ?>
+<?php require_once __DIR__ . '/includes/footer.php'; ?>

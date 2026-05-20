@@ -1,4 +1,22 @@
-<?php require_once 'includes/header.php'; ?>
+<?php
+if (!isset($selectedLivestock)) {
+    $selectedLivestock = null;
+    if (isset($_GET['livestock_id'])) {
+        require_once __DIR__ . '/../config/database.php';
+        if (isset($conn)) {
+            try {
+                $livestockId = (int)$_GET['livestock_id'];
+                $stmt = $conn->prepare("SELECT * FROM livestock WHERE id = ? AND status = 'available'");
+                $stmt->execute([$livestockId]);
+                $selectedLivestock = $stmt->fetch(PDO::FETCH_ASSOC);
+            } catch (PDOException $e) {
+                // Silently ignore if query fails
+            }
+        }
+    }
+}
+require_once __DIR__ . '/../includes/header.php';
+?>
 
 <div class="bg-gray-50 min-h-screen py-12">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -65,10 +83,10 @@
                             <div class="flex items-center justify-between mb-4">
                                 <h3 class="text-sm font-bold text-gray-800"><i class="fas fa-user-circle text-brand-primary mr-1.5"></i> Data Sohibul Qurban</h3>
                                 <button type="button" id="toggle-sq" class="text-brand-primary text-xs font-semibold hover:underline flex items-center gap-1">
-                                    <i class="fas fa-chevron-down text-[10px]"></i> Isi Data
+                                    <i class="fas fa-chevron-up text-[10px]"></i> <span>Sembunyikan</span>
                                 </button>
                             </div>
-                            <div id="sq-section" class="space-y-5 hidden">
+                            <div id="sq-section" class="space-y-5">
                                 <div>
                                     <label class="block text-sm font-semibold text-gray-700 mb-2">Nama Lengkap <span class="text-red-500">*</span></label>
                                     <input type="text" name="sq_name" id="sq_name" required
@@ -209,4 +227,4 @@
     });
 </script>
 
-<?php require_once 'includes/footer.php'; ?>
+<?php require_once __DIR__ . '/../includes/footer.php'; ?>

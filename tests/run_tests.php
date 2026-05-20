@@ -65,6 +65,30 @@ try {
         )
     ");
 
+    $db->exec("
+        CREATE TABLE savings_plans (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            customer_id INTEGER NOT NULL,
+            livestock_id INTEGER NOT NULL,
+            target_amount DECIMAL(15,2) NOT NULL,
+            monthly_installment DECIMAL(15,2) NOT NULL,
+            status VARCHAR(100) DEFAULT 'active',
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        )
+    ");
+
+    $db->exec("
+        CREATE TABLE savings_transactions (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            plan_id INTEGER NOT NULL,
+            amount DECIMAL(15,2) NOT NULL,
+            proof_of_payment VARCHAR(255) NOT NULL,
+            status VARCHAR(100) DEFAULT 'pending',
+            verified_by INTEGER DEFAULT NULL,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        )
+    ");
+
 } catch (Exception $e) {
     echo ANSI_RED . "❌ GAGAL MEMBUAT DATABASE ISOLASI: " . $e->getMessage() . ANSI_RESET . "\n";
     exit(1);
@@ -74,6 +98,7 @@ try {
 require_once __DIR__ . '/../models/User.php';
 require_once __DIR__ . '/../models/Livestock.php';
 require_once __DIR__ . '/../models/Order.php';
+require_once __DIR__ . '/../models/Savings.php';
 
 // Simple Test Runner Engine
 $testsPassed = 0;
@@ -105,6 +130,9 @@ require_once __DIR__ . '/MarketplaceSaleTest.php';
 
 echo "\n👑 [TEST SUITE: Admin Manual Sale]\n";
 require_once __DIR__ . '/AdminManualSaleTest.php';
+
+echo "\n📈 [TEST SUITE: Savings Plan]\n";
+require_once __DIR__ . '/SavingsTest.php';
 
 // Summary
 echo "\n==================================================\n";
