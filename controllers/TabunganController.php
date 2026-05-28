@@ -1,16 +1,20 @@
 <?php
+require_once 'models/Livestock.php';
+
 class TabunganController {
     public function index() {
-        require_once 'config/database.php';
-        
-        $selectedLivestock = null;
-        if (isset($_GET['livestock_id'])) {
-            $livestockId = (int)$_GET['livestock_id'];
-            $stmt = $conn->prepare("SELECT * FROM livestock WHERE id = ? AND status = 'available'");
-            $stmt->execute([$livestockId]);
-            $selectedLivestock = $stmt->fetch(PDO::FETCH_ASSOC);
+        if (session_status() === PHP_SESSION_NONE) { session_start(); }
+        if (empty($_SESSION['csrf_token'])) {
+            $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
         }
-        
+        require_once 'config/database.php';
+
+        $livestocks = [];
+        if (isset($conn)) {
+            $livestockModel = new Livestock($conn);
+            $livestocks = $livestockModel->getAvailable();
+        }
+
         require_once 'views/tabungan.php';
     }
 }

@@ -7,20 +7,20 @@ it('dapat melakukan pembelian hewan qurban di marketplace dengan sukses', functi
     $livestock = new Livestock($db);
     $livestock->create([
         'code' => 'LTP-SAPI-01',
+        'peternak_name' => 'Pak Ahmad Breeder',
         'name' => 'Sapi Limosin Super',
-        'category' => 'qurban',
         'breed' => 'Limosin',
         'age' => 24,
         'weight' => 450.00,
         'gender' => 'male',
-        'price' => 25000000.00,
+        'selling_price' => 25000000.00,
         'purchase_price' => 20000000.00,
         'stock' => 1,
         'status' => 'available'
     ]);
 
     // Fetch the inserted livestock id
-    $stmt = $db->query("SELECT id FROM livestock WHERE code = 'LTP-SAPI-01'");
+    $stmt = $db->query("SELECT id FROM livestock WHERE livestock_code = 'LTP-SAPI-01'");
     $livestockId = $stmt->fetchColumn();
 
     // Create a customer
@@ -78,7 +78,7 @@ it('dapat melakukan pembelian hewan qurban di marketplace dengan sukses', functi
 it('akan melemparkan Exception jika melakukan checkout melebihi jumlah stok yang tersedia', function() use ($db) {
     // Arrange
     $livestock = new Livestock($db);
-    $stmt = $db->query("SELECT id FROM livestock WHERE code = 'LTP-SAPI-01'");
+    $stmt = $db->query("SELECT id FROM livestock WHERE livestock_code = 'LTP-SAPI-01'");
     $livestockId = $stmt->fetchColumn();
 
     // Act & Assert

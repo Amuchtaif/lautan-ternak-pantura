@@ -1,812 +1,872 @@
-<?php 
-require_once '../../config/database.php';
-if (session_status() === PHP_SESSION_NONE) { session_start(); }
-
-if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'admin') {
-    header("Location: /lautan-ternak-pantura/views/auth/login");
-    exit();
+<?php
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
 }
-
-// Fetch Sales Data (Orders)
-try {
-    $stmt = $conn->query("
-        SELECT o.*, o.created_at as order_date, u.name as customer_name, l.name as livestock_type, l.price as livestock_price, p.payment_proof
-        FROM orders o
-        JOIN users u ON o.customer_id = u.id
-        JOIN livestock l ON o.livestock_id = l.id
-        LEFT JOIN payments p ON p.order_id = o.id
-        ORDER BY o.created_at DESC
-    ");
-    $salesList = $stmt->fetchAll(PDO::FETCH_ASSOC);
-} catch (PDOException $e) {
-    $errorMsg = $e->getMessage();
-    $salesList = [];
-}
-
-// Fetch Customers (for dropdown)
-$customers = [];
-try {
-    $stmtCust = $conn->query("SELECT id, name, email, address FROM users WHERE role != 'admin' ORDER BY name ASC");
-    $customers = $stmtCust->fetchAll(PDO::FETCH_ASSOC);
-} catch (PDOException $e) {
-    $errorMsg = $e->getMessage();
-}
-
-// Fetch Livestock (for dropdown)
-$livestockDropdown = [];
-try {
-    $stmtLive = $conn->query("SELECT id, name as type, code, price, status FROM livestock ORDER BY status ASC, name ASC");
-    $livestockDropdown = $stmtLive->fetchAll(PDO::FETCH_ASSOC);
-} catch (PDOException $e) {
-    $errorMsg = $e->getMessage();
-}
+require_once 'views/admin/includes/header.php';
+require_once 'views/admin/includes/sidebar.php';
 ?>
-<!DOCTYPE html>
-<html lang="id">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Penjualan Hewan - Admin Dashboard</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        brand: {
-                            primary: '#0d5bb5',
-                            secondary: '#00a3e0',
-                            light: '#e0f2fe',
-                            dark: '#0a4286',
-                            accent: '#f59e0b',
-                        }
-                    }
-                }
-            }
-        }
-    </script>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-    <link rel="icon" type="image/x-icon" href="/lautan-ternak-pantura/assets/images/favicon.ico">
-    <style>
-        body { font-family: 'Plus Jakarta Sans', sans-serif; }
-        .custom-scrollbar::-webkit-scrollbar { width: 4px; height: 4px; }
-        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 10px; }
-        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #cbd5e1; }
-        .no-scrollbar::-webkit-scrollbar { display: none; }
-        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-    </style>
-</head>
-<body class="bg-gray-50 flex min-h-screen">
 
-    <?php include 'includes/sidebar.php'; ?>
+<div class="flex-grow flex flex-col min-h-screen max-w-full overflow-x-hidden">
+    <?php
+    $topbarTitle = 'Penjualan Hewan';
+    $topbarSubtitle = 'Monitor dan verifikasi transaksi penjualan ternak';
+    require_once 'views/admin/includes/topbar.php';
+    ?>
+    <main class="p-8 space-y-8 flex-grow">
 
-    <!-- Main Content -->
-    <div class="flex-grow flex flex-col min-h-screen max-w-full overflow-x-hidden">
-        
-        <!-- Top Navigation -->
-        <?php include 'includes/topbar.php'; ?>
+        <!-- Header -->
+        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+            <div>
+                <h1 class="text-2xl font-black text-gray-900 tracking-tight">Kelola <span
+                        class="text-brand-primary">Penjualan Hewan</span></h1>
+                <p class="text-xs text-gray-400 font-bold uppercase tracking-widest mt-1">Daftar transaksi penjualan, uang muka (DP), dan cicilan pelunasan</p>
+            </div>
+            <button onclick="openCreateSaleModal()"
+                class="bg-brand-primary text-white px-6 py-3.5 rounded-2xl shadow-xl shadow-brand-primary/20 hover:bg-brand-dark transition-all text-sm font-black flex items-center gap-2">
+                <i class="fas fa-plus"></i> Catat Penjualan Baru
+            </button>
+        </div>
 
-        <!-- Page Body -->
-        <main class="p-8 space-y-8 flex-grow">
-            
-            <!-- Header -->
-            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <!-- Session/GET Toast Alerts -->
+        <?php if (isset($_SESSION['success_msg'])): ?>
+            <script>
+                document.addEventListener('DOMContentLoaded', function () {
+                    showToast("<?php echo addslashes(htmlspecialchars($_SESSION['success_msg'])); ?>", "success");
+                });
+            </script>
+            <?php unset($_SESSION['success_msg']); ?>
+        <?php endif; ?>
+
+        <?php if (isset($_SESSION['error'])): ?>
+            <script>
+                document.addEventListener('DOMContentLoaded', function () {
+                    showToast("<?php echo addslashes(htmlspecialchars($_SESSION['error'])); ?>", "error");
+                });
+            </script>
+            <?php unset($_SESSION['error']); ?>
+        <?php endif; ?>
+
+        <!-- Stats Grid -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div class="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm flex items-center gap-6">
+                <div class="w-16 h-16 rounded-2xl bg-brand-light text-brand-primary flex items-center justify-center text-2xl">
+                    <i class="fas fa-shopping-bag"></i>
+                </div>
                 <div>
-                    <h1 class="text-2xl font-black text-gray-900 tracking-tight">Kelola <span class="text-brand-primary">Penjualan Hewan</span></h1>
-                    <p class="text-xs text-gray-400 font-bold uppercase tracking-widest mt-1">Monitor & kelola transaksi penjualan ke pelanggan</p>
+                    <p class="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Total Pesanan</p>
+                    <h3 class="text-2xl font-black text-gray-900"><?php echo count($salesList); ?></h3>
                 </div>
             </div>
-
-
-            
-            <!-- Stats Grid -->
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div class="bg-white p-8 rounded-xl shadow-sm border border-gray-50 flex items-center gap-6">
-                    <div class="w-16 h-16 rounded-2xl bg-brand-light text-brand-primary flex items-center justify-center text-2xl">
-                        <i class="fas fa-shopping-bag"></i>
-                    </div>
-                    <div>
-                        <p class="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Total Pesanan</p>
-                        <h3 class="text-2xl font-black text-gray-900" id="stats-total-orders"><?php echo count($salesList); ?></h3>
-                    </div>
+            <div class="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm flex items-center gap-6">
+                <div class="w-16 h-16 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-2xl">
+                    <i class="fas fa-money-bill-wave"></i>
                 </div>
-                <div class="bg-white p-8 rounded-xl shadow-sm border border-gray-50 flex items-center gap-6">
-                    <div class="w-16 h-16 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-2xl">
-                        <i class="fas fa-money-bill-wave"></i>
-                    </div>
-                    <div>
-                        <p class="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Total Penjualan</p>
-                        <h3 class="text-2xl font-black text-gray-900" id="stats-total-sales">Rp <?php 
-                            $total = array_sum(array_column($salesList, 'total_price'));
-                            echo number_format($total, 0, ',', '.'); 
-                        ?></h3>
-                    </div>
-                </div>
-                <div class="bg-white p-8 rounded-xl shadow-sm border border-gray-50 flex items-center gap-6">
-                    <div class="w-16 h-16 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center text-2xl">
-                        <i class="fas fa-clock"></i>
-                    </div>
-                    <div>
-                        <p class="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Pending</p>
-                        <h3 class="text-2xl font-black text-gray-900" id="stats-pending-orders"><?php 
-                            $pending = array_filter($salesList, function($s) { return $s['status'] === 'pending'; });
-                            echo count($pending); 
-                        ?></h3>
-                    </div>
+                <div>
+                    <p class="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Total Nilai Transaksi</p>
+                    <h3 class="text-2xl font-black text-gray-900">Rp <?php 
+                        $totalVal = array_sum(array_column($salesList, 'total_price'));
+                        echo number_format($totalVal, 0, ',', '.'); 
+                    ?></h3>
                 </div>
             </div>
+            <div class="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm flex items-center gap-6">
+                <div class="w-16 h-16 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center text-2xl">
+                    <i class="fas fa-clock"></i>
+                </div>
+                <div>
+                    <p class="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Pesanan Pending</p>
+                    <h3 class="text-2xl font-black text-gray-900"><?php 
+                        $pendingCount = count(array_filter($salesList, function($s) { return $s['sale_status'] === 'pending'; }));
+                        echo $pendingCount; 
+                    ?></h3>
+                </div>
+            </div>
+        </div>
 
-            <!-- Actions Bar -->
-            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                <div class="relative w-full sm:w-96">
+        <!-- Filter Bar -->
+        <div class="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
+            <form method="GET" action="/lautan-ternak-pantura/sales/index" class="grid grid-cols-1 sm:grid-cols-4 gap-4">
+                <div class="relative sm:col-span-2">
                     <i class="fas fa-search absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"></i>
-                    <input type="text" id="search-input" placeholder="Cari penjualan (Nama Pelanggan, Hewan...)" 
-                        class="w-full pl-12 pr-4 py-3 bg-white border border-gray-100 rounded-2xl outline-none focus:border-brand-primary transition-all text-sm font-medium shadow-sm" onkeyup="filterSalesTable()">
+                    <input type="text" name="search" value="<?php echo htmlspecialchars($search ?? ''); ?>" placeholder="Cari invoice, nama pelanggan, hewan, peternak..." 
+                        class="w-full pl-12 pr-4 py-3 bg-gray-50 border border-transparent rounded-xl outline-none focus:border-brand-primary focus:bg-white transition-all text-sm font-bold text-gray-700">
                 </div>
-                <button onclick="openModal('add')" class="bg-brand-primary text-white px-6 py-3 rounded-2xl font-black text-sm shadow-xl shadow-brand-primary/20 hover:bg-brand-dark transition-all flex items-center gap-3">
-                    <i class="fas fa-plus"></i> Tambah Penjualan Baru
-                </button>
-            </div>
+                <div>
+                    <div class="relative">
+                        <select name="payment_status" class="w-full pl-4 pr-10 py-3 bg-gray-50 border border-transparent rounded-xl outline-none focus:border-brand-primary focus:bg-white transition-all text-sm font-bold text-gray-700 appearance-none">
+                            <option value="">-- Status Bayar --</option>
+                            <option value="unpaid" <?php echo ($payment_status === 'unpaid') ? 'selected' : ''; ?>>Belum Bayar (Unpaid)</option>
+                            <option value="partial" <?php echo ($payment_status === 'partial') ? 'selected' : ''; ?>>DP / Sebagian (Partial)</option>
+                            <option value="paid" <?php echo ($payment_status === 'paid') ? 'selected' : ''; ?>>Lunas (Paid)</option>
+                        </select>
+                        <i class="fas fa-chevron-down absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none text-xs"></i>
+                    </div>
+                </div>
+                <div class="flex gap-2">
+                    <div class="relative flex-grow">
+                        <select name="sale_status" class="w-full pl-4 pr-10 py-3 bg-gray-50 border border-transparent rounded-xl outline-none focus:border-brand-primary focus:bg-white transition-all text-sm font-bold text-gray-700 appearance-none">
+                            <option value="">-- Status Pesanan --</option>
+                            <option value="pending" <?php echo ($sale_status === 'pending') ? 'selected' : ''; ?>>Menunggu (Pending)</option>
+                            <option value="processing" <?php echo ($sale_status === 'processing') ? 'selected' : ''; ?>>Diproses (Processing)</option>
+                            <option value="completed" <?php echo ($sale_status === 'completed') ? 'selected' : ''; ?>>Selesai (Completed)</option>
+                            <option value="cancelled" <?php echo ($sale_status === 'cancelled') ? 'selected' : ''; ?>>Batal (Cancelled)</option>
+                        </select>
+                        <i class="fas fa-chevron-down absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none text-xs"></i>
+                    </div>
+                    <button type="submit" class="bg-brand-primary hover:bg-brand-dark text-white px-5 rounded-xl transition-all shadow-md shadow-brand-primary/20 flex items-center justify-center">
+                        <i class="fas fa-filter"></i>
+                    </button>
+                </div>
+            </form>
+        </div>
 
-            <!-- Sales Table -->
-            <div class="bg-white rounded-2xl shadow-sm border border-gray-50 overflow-hidden">
-                <div class="overflow-x-auto">
-                    <table class="w-full" id="sales-table">
-                        <thead class="bg-gray-50/50">
+        <!-- Table Card -->
+        <div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+            <div class="overflow-x-auto">
+                <table class="w-full" id="sales-table">
+                    <thead class="bg-gray-50/50">
+                        <tr>
+                            <th class="px-8 py-5 text-left text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] w-16">No</th>
+                            <th class="px-8 py-5 text-left text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Invoice & Pelanggan</th>
+                            <th class="px-8 py-5 text-left text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Hewan & Peternak</th>
+                            <th class="px-8 py-5 text-left text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Tipe & Status Bayar</th>
+                            <th class="px-8 py-5 text-left text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Status Pesanan</th>
+                            <th class="px-8 py-5 text-left text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Total Harga</th>
+                            <th class="px-8 py-5 text-right text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] w-28">Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-50">
+                        <?php if (empty($salesList)): ?>
                             <tr>
-                                <th class="px-8 py-5 text-left text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] w-16">No</th>
-                                <th class="px-8 py-5 text-left text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Pesanan / Pelanggan</th>
-                                <th class="px-8 py-5 text-left text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Hewan & Total Harga</th>
-                                <th class="px-8 py-5 text-left text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Status</th>
-                                <th class="px-8 py-5 text-center text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Bukti Bayar</th>
-                                <th class="px-8 py-5 text-left text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Tanggal</th>
-                                <th class="px-8 py-5 text-right text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Aksi</th>
+                                <td colspan="7" class="px-8 py-12 text-center text-gray-400 font-bold">
+                                    Belum ada data penjualan masuk.
+                                </td>
                             </tr>
-                        </thead>
-                        <tbody class="divide-y divide-gray-50">
-                            <?php if (empty($salesList)): ?>
-                                <tr id="no-data-row">
-                                    <td colspan="7" class="px-8 py-10 text-center text-gray-400 font-bold">
-                                        Belum ada data penjualan.
-                                    </td>
-                                </tr>
-                            <?php else: ?>
-                                <?php foreach ($salesList as $i => $item): ?>
-                                <tr class="hover:bg-brand-light/20 transition-colors group sale-row" id="sale-row-<?php echo $item['id']; ?>">
+                        <?php else: ?>
+                            <?php foreach ($salesList as $i => $sale): ?>
+                                <tr class="hover:bg-brand-light/10 transition-all duration-200">
                                     <td class="px-8 py-6">
-                                        <p class="text-sm font-black text-gray-400 index-column"><?php echo $i + 1; ?></p>
+                                        <span class="text-sm font-black text-gray-400"><?php echo $i + 1; ?></span>
                                     </td>
                                     <td class="px-8 py-6">
-                                        <div>
-                                            <p class="text-sm font-black text-gray-900 leading-none">#<?php echo htmlspecialchars($item['order_code']); ?></p>
-                                            <p class="text-[10px] font-bold text-gray-400 mt-1.5 uppercase tracking-widest customer-name-column"><?php echo htmlspecialchars($item['customer_name']); ?></p>
+                                        <p class="text-sm font-black text-gray-900">
+                                            #<?php echo htmlspecialchars($sale['invoice_code']); ?>
+                                        </p>
+                                        <p class="text-xs text-gray-500 font-bold uppercase mt-0.5">
+                                            <?php echo htmlspecialchars($sale['customer_name']); ?>
+                                        </p>
+                                        <p class="text-[9px] text-gray-400 mt-0.5 font-bold">
+                                            <i class="fab fa-whatsapp text-emerald-500 mr-1"></i><?php echo htmlspecialchars($sale['customer_phone'] ?: '-'); ?>
+                                        </p>
+                                    </td>
+                                    <td class="px-8 py-6">
+                                        <p class="text-sm font-bold text-gray-700 capitalize">
+                                            <?php echo htmlspecialchars($sale['livestock_name']); ?>
+                                        </p>
+                                        <p class="text-[9px] text-gray-400 font-bold uppercase mt-0.5">
+                                            Peternak: <?php echo htmlspecialchars($sale['peternak_name']); ?>
+                                        </p>
+                                    </td>
+                                    <td class="px-8 py-6">
+                                        <div class="flex flex-col gap-1.5 items-start">
+                                            <span class="px-2 py-0.5 text-[9px] font-black uppercase tracking-wider rounded <?php echo ($sale['payment_type'] === 'dp') ? 'bg-amber-50 text-amber-600' : 'bg-emerald-50 text-emerald-600'; ?>">
+                                                <?php echo strtoupper($sale['payment_type']); ?>
+                                            </span>
+                                            <?php
+                                            $payClasses = [
+                                                'unpaid' => 'bg-red-50 text-red-500',
+                                                'partial' => 'bg-amber-50 text-amber-500 border border-amber-200',
+                                                'paid' => 'bg-emerald-50 text-emerald-600 font-bold'
+                                            ][$sale['payment_status']] ?? 'bg-gray-50 text-gray-400';
+                                            $payLabel = [
+                                                'unpaid' => 'Belum Bayar',
+                                                'partial' => 'DP / Sebagian',
+                                                'paid' => 'Lunas'
+                                            ][$sale['payment_status']] ?? $sale['payment_status'];
+                                            ?>
+                                            <span class="px-2 py-0.5 text-[9px] font-black uppercase tracking-wider rounded <?php echo $payClasses; ?>">
+                                                <?php echo $payLabel; ?>
+                                            </span>
                                         </div>
                                     </td>
                                     <td class="px-8 py-6">
-                                        <div class="flex flex-col gap-1">
-                                            <div class="flex items-center gap-2">
-                                                <span class="w-2 h-2 rounded-full bg-brand-primary animate-pulse"></span>
-                                                <p class="text-xs font-bold text-gray-700 capitalize livestock-info-column"><?php echo htmlspecialchars($item['livestock_type']); ?></p>
-                                            </div>
-                                            <p class="text-xs font-bold text-brand-primary mt-1">Rp <?php echo number_format($item['total_price'], 0, ',', '.'); ?></p>
-                                        </div>
-                                    </td>
-                                    <td class="px-8 py-6">
-                                        <?php 
-                                            $statusClasses = [
-                                                'pending' => 'bg-amber-50 text-amber-600',
-                                                'waiting_payment' => 'bg-orange-50 text-orange-600',
-                                                'payment_review' => 'bg-indigo-50 text-indigo-600',
-                                                'paid' => 'bg-blue-50 text-blue-600',
-                                                'processing' => 'bg-violet-50 text-violet-600',
-                                                'delivered' => 'bg-green-50 text-green-600',
-                                                'completed' => 'bg-emerald-50 text-emerald-600',
-                                                'cancelled' => 'bg-red-50 text-red-600'
-                                            ];
-                                            $statusText = [
-                                                'pending' => 'Menunggu',
-                                                'waiting_payment' => 'Menunggu Pembayaran',
-                                                'payment_review' => 'Review Bayar',
-                                                'paid' => 'Dibayar',
-                                                'processing' => 'Diproses',
-                                                'delivered' => 'Dikirim',
-                                                'completed' => 'Selesai',
-                                                'cancelled' => 'Batal'
-                                            ];
-                                            $class = $statusClasses[$item['status']] ?? 'bg-gray-50 text-gray-400';
-                                            $text = $statusText[$item['status']] ?? $item['status'];
+                                        <?php
+                                        $saleClasses = [
+                                            'pending' => 'bg-amber-50 text-amber-600',
+                                            'processing' => 'bg-blue-50 text-blue-600',
+                                            'completed' => 'bg-emerald-50 text-emerald-600',
+                                            'cancelled' => 'bg-red-50 text-red-500'
+                                        ][$sale['sale_status']] ?? 'bg-gray-50 text-gray-400';
                                         ?>
-                                        <span class="px-3 py-1 text-[10px] font-black rounded-full <?php echo $class; ?> uppercase status-badge">
-                                            <?php echo $text; ?>
+                                        <span class="px-2.5 py-1 text-[10px] font-black uppercase tracking-widest rounded-full <?php echo $saleClasses; ?>">
+                                            <?php echo $sale['sale_status']; ?>
                                         </span>
                                     </td>
                                     <td class="px-8 py-6">
-                                        <p class="text-xs font-bold text-gray-400"><?php echo date('d M Y H:i', strtotime($item['order_date'])); ?></p>
+                                        <p class="text-sm font-black text-brand-primary">
+                                            Rp <?php echo number_format($sale['total_price'], 0, ',', '.'); ?>
+                                        </p>
+                                        <p class="text-[9px] text-gray-400 font-bold mt-0.5">
+                                            <?php echo date('d M Y', strtotime($sale['created_at'])); ?>
+                                        </p>
                                     </td>
-                                    <td class="px-8 py-6 text-center">
-                                        <?php if (!empty($item['payment_proof'])): ?>
-                                            <button onclick="openImageModal('<?php echo htmlspecialchars($item['payment_proof']); ?>')" class="inline-flex px-3 py-1.5 rounded-lg bg-emerald-50 text-emerald-600 font-bold text-[10px] uppercase tracking-widest hover:bg-emerald-500 hover:text-white transition-all shadow-sm gap-2 items-center" title="Lihat Bukti Pembayaran">
-                                                <i class="fas fa-image"></i> Lihat
-                                            </button>
-                                        <?php else: ?>
-                                            <span class="text-xs font-bold text-gray-300">-</span>
-                                        <?php endif; ?>
-                                    </td>
-                                    <td class="px-8 py-6 text-right">
-                                        <div class="flex justify-end gap-2">
-                                            <a href="/lautan-ternak-pantura/order/transaction_detail/<?php echo $item['id']; ?>" class="inline-flex w-10 h-10 rounded-xl bg-gray-50 hover:bg-brand-primary text-gray-400 hover:text-white items-center justify-center transition-all shadow-sm">
-                                                <i class="fas fa-search-plus"></i>
+                                    <td class="px-8 py-6 text-right whitespace-nowrap">
+                                        <div class="flex items-center justify-end gap-2">
+                                            <a href="/lautan-ternak-pantura/sales/detail/<?php echo $sale['id']; ?>"
+                                                class="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 flex items-center justify-center transition-all"
+                                                title="Detail & Ledger Pembayaran">
+                                                <i class="fas fa-search-plus text-xs"></i>
                                             </a>
-                                            <button onclick="openModal('edit', <?php echo htmlspecialchars(json_encode($item)); ?>)" class="w-10 h-10 rounded-xl bg-gray-50 text-gray-400 flex items-center justify-center hover:bg-brand-primary hover:text-white transition-all shadow-sm">
-                                                <i class="fas fa-pen"></i>
-                                            </button>
-                                            <button onclick="openDeleteModal(<?php echo $item['id']; ?>, '#<?php echo htmlspecialchars($item['order_code']); ?>')" class="w-10 h-10 rounded-xl bg-red-50 text-red-500 flex items-center justify-center hover:bg-red-500 hover:text-white transition-all shadow-sm">
-                                                <i class="fas fa-trash"></i>
+                                            <button onclick="openDeleteModal(<?php echo $sale['id']; ?>, '<?php echo htmlspecialchars($sale['invoice_code']); ?>')"
+                                                class="w-8 h-8 rounded-lg bg-red-50 text-red-600 hover:bg-red-100 flex items-center justify-center transition-all"
+                                                title="Batalkan & Hapus">
+                                                <i class="fas fa-trash-alt text-xs"></i>
                                             </button>
                                         </div>
                                     </td>
                                 </tr>
-                                <?php endforeach; ?>
-                            <?php endif; ?>
-                        </tbody>
-                    </table>
-                </div>
-                
-                <!-- Table Footer with Pagination -->
-                <div class="px-8 py-5 bg-gray-50/50 border-t border-gray-100 flex flex-col sm:flex-row justify-between items-center gap-4 shrink-0">
-                    <div class="flex items-center gap-3">
-                        <span class="text-xs font-bold text-gray-400 uppercase tracking-wider">Tampilkan</span>
-                        <div class="relative">
-                            <select id="entries-per-page" onchange="changeEntriesPerPage(this.value)" class="pl-4 pr-10 py-2 bg-white border border-gray-100 rounded-lg outline-none focus:border-brand-primary text-xs font-bold text-gray-700 appearance-none cursor-pointer shadow-sm">
-                                <option value="5">5</option>
-                                <option value="10" selected>10</option>
-                                <option value="25">25</option>
-                                <option value="50">50</option>
-                            </select>
-                            <i class="fas fa-chevron-down absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none text-[10px]"></i>
-                        </div>
-                        <span class="text-xs font-bold text-gray-400 uppercase tracking-wider">data</span>
-                    </div>
-                    <div class="flex items-center gap-2">
-                        <button onclick="prevPage()" id="prev-btn" class="w-8 h-8 rounded-lg border border-gray-100 bg-white flex items-center justify-center text-gray-400 hover:text-brand-primary hover:border-brand-primary/20 transition-all shadow-sm"><i class="fas fa-chevron-left text-xs"></i></button>
-                        <div id="page-numbers" class="flex items-center gap-1.5">
-                            <!-- Dynamic page numbers -->
-                        </div>
-                        <button onclick="nextPage()" id="next-btn" class="w-8 h-8 rounded-lg border border-gray-100 bg-white flex items-center justify-center text-gray-400 hover:text-brand-primary hover:border-brand-primary/20 transition-all shadow-sm"><i class="fas fa-chevron-right text-xs"></i></button>
-                    </div>
-                    <span class="text-xs font-bold text-gray-400 uppercase tracking-wider" id="entries-info"></span>
-                </div>
+                            <?php endforeach; ?>
+                        <?php endif; ?>
+                    </tbody>
+                </table>
             </div>
-        </main>
+
+            <!-- Table Footer with Pagination -->
+            <div class="px-8 py-5 bg-gray-50/50 border-t border-gray-100 flex flex-col sm:flex-row justify-between items-center gap-4 shrink-0">
+                <div class="flex items-center gap-3">
+                    <span class="text-xs font-bold text-gray-400 uppercase tracking-wider">Tampilkan</span>
+                    <div class="relative">
+                        <select id="entries-per-page" onchange="changeEntriesPerPage(this.value)"
+                            class="pl-4 pr-10 py-2 bg-white border border-gray-100 rounded-lg outline-none focus:border-brand-primary text-xs font-bold text-gray-700 appearance-none cursor-pointer shadow-sm">
+                            <option value="5">5</option>
+                            <option value="10" selected>10</option>
+                            <option value="25">25</option>
+                            <option value="50">50</option>
+                        </select>
+                        <i class="fas fa-chevron-down absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none text-[10px]"></i>
+                    </div>
+                    <span class="text-xs font-bold text-gray-400 uppercase tracking-wider">data</span>
+                </div>
+                <div class="flex items-center gap-2">
+                    <button onclick="prevPage()" id="prev-btn"
+                        class="w-8 h-8 rounded-lg border border-gray-100 bg-white flex items-center justify-center text-gray-400 hover:text-brand-primary hover:border-brand-primary/20 transition-all shadow-sm"><i
+                            class="fas fa-chevron-left text-xs"></i></button>
+                    <div id="page-numbers" class="flex items-center gap-1.5">
+                        <!-- Dynamic page numbers -->
+                    </div>
+                    <button onclick="nextPage()" id="next-btn"
+                        class="w-8 h-8 rounded-lg border border-gray-100 bg-white flex items-center justify-center text-gray-400 hover:text-brand-primary hover:border-brand-primary/20 transition-all shadow-sm"><i
+                            class="fas fa-chevron-right text-xs"></i></button>
+                </div>
+                <span class="text-xs font-bold text-gray-400 uppercase tracking-wider" id="entries-info"></span>
+            </div>
+        </div>
+    </main>
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div id="delete-modal"
+    class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-gray-900/60 backdrop-blur-sm hidden opacity-0 transition-all duration-300">
+    <div class="bg-white rounded-2xl max-w-sm w-full p-8 shadow-2xl border border-gray-100 transform scale-95 transition-all duration-300 text-center">
+        <div class="w-16 h-16 rounded-full bg-red-50 text-red-500 flex items-center justify-center mx-auto mb-4 text-2xl">
+            <i class="fas fa-trash-can"></i>
+        </div>
+        <h3 class="text-lg font-black text-gray-900 mb-2">Batalkan Penjualan?</h3>
+        <p class="text-xs text-gray-400 font-bold uppercase tracking-widest mb-6">
+            Menghapus transaksi <span id="delete-invoice-code" class="text-gray-900 font-extrabold"></span> akan mengembalikan stok hewan ke inventori. Tindakan ini tidak dapat dibatalkan.
+        </p>
+
+        <form action="/lautan-ternak-pantura/sales/delete" method="POST" class="flex gap-3">
+            <input type="hidden" id="delete-id" name="id">
+            <button type="button" onclick="closeModal('delete')"
+                class="flex-1 px-5 py-3.5 border border-gray-100 text-gray-500 rounded-xl text-sm font-bold hover:bg-gray-50 transition-all">Batal</button>
+            <button type="submit"
+                class="flex-1 px-5 py-3.5 bg-red-500 text-white rounded-xl text-sm font-black hover:bg-red-600 transition-all shadow-lg shadow-red-500/20">Ya, Hapus</button>
+        </form>
     </div>
+</div>
 
-    <!-- Modal Form (Add / Edit) -->
-    <div id="modal-overlay" class="fixed inset-0 bg-black/60 backdrop-blur-md z-[1000] hidden items-center justify-center p-4 transition-all duration-300 opacity-0">
-        <div id="modal-content" class="bg-white rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden shadow-2xl transition-all duration-300 scale-90 opacity-0 flex flex-col">
-            <div class="px-8 py-6 border-b border-gray-50 flex justify-between items-center bg-gray-50/50 shrink-0">
-                <h3 id="modal-title" class="text-xl font-black text-brand-dark tracking-tight">Tambah Penjualan Baru</h3>
-                <button onclick="closeModal()" class="w-10 h-10 rounded-full hover:bg-gray-100 flex items-center justify-center text-gray-400 hover:text-gray-600 transition-all"><i class="fas fa-xmark text-xl"></i></button>
+<script>
+    function openDeleteModal(id, invoiceCode) {
+        document.getElementById('delete-id').value = id;
+        document.getElementById('delete-invoice-code').innerText = invoiceCode;
+        const modal = document.getElementById('delete-modal');
+        modal.classList.remove('hidden');
+        setTimeout(() => {
+            modal.classList.remove('opacity-0');
+            modal.firstElementChild.classList.remove('scale-95');
+        }, 10);
+    }
+
+    function closeModal(type) {
+        const modal = document.getElementById(type + '-modal');
+        modal.classList.add('opacity-0');
+        modal.firstElementChild.classList.add('scale-95');
+        setTimeout(() => {
+            modal.classList.add('hidden');
+        }, 300);
+    }
+
+    // Client-side pagination engine
+    let currentPage = 1;
+    let rowsPerPage = 10;
+    let tableRows = [];
+
+    function initPagination() {
+        tableRows = Array.from(document.querySelectorAll('#sales-table tbody tr')).filter(row => !row.cells[0].classList.contains('text-center'));
+        showPage(1);
+    }
+
+    function showPage(page) {
+        currentPage = page;
+        const totalRows = tableRows.length;
+        const totalPages = Math.ceil(totalRows / rowsPerPage) || 1;
+
+        if (currentPage < 1) currentPage = 1;
+        if (currentPage > totalPages) currentPage = totalPages;
+
+        const startIdx = (currentPage - 1) * rowsPerPage;
+        const endIdx = Math.min(startIdx + rowsPerPage, totalRows);
+
+        tableRows.forEach((row, idx) => {
+            if (idx >= startIdx && idx < endIdx) {
+                row.style.display = "";
+            } else {
+                row.style.display = "none";
+            }
+        });
+
+        updatePaginationUI(totalPages, totalRows, startIdx, endIdx);
+    }
+
+    function updatePaginationUI(totalPages, totalRows, startIdx, endIdx) {
+        const prevBtn = document.getElementById('prev-btn');
+        const nextBtn = document.getElementById('next-btn');
+        const pageNumbers = document.getElementById('page-numbers');
+        const infoText = document.getElementById('entries-info');
+
+        if (prevBtn) prevBtn.disabled = currentPage === 1;
+        if (nextBtn) nextBtn.disabled = currentPage === totalPages;
+
+        // Apply opacity styles for disabled state
+        if (prevBtn) {
+            if (currentPage === 1) prevBtn.classList.add('opacity-40', 'cursor-not-allowed');
+            else prevBtn.classList.remove('opacity-40', 'cursor-not-allowed');
+        }
+        if (nextBtn) {
+            if (currentPage === totalPages) nextBtn.classList.add('opacity-40', 'cursor-not-allowed');
+            else nextBtn.classList.remove('opacity-40', 'cursor-not-allowed');
+        }
+
+        if (infoText) {
+            if (totalRows === 0) {
+                infoText.innerText = "Tidak ada data";
+            } else {
+                infoText.innerText = `Menampilkan ${startIdx + 1}-${endIdx} dari ${totalRows} data`;
+            }
+        }
+
+        if (pageNumbers) {
+            pageNumbers.innerHTML = "";
+            let startPage = Math.max(1, currentPage - 2);
+            let endPage = Math.min(totalPages, startPage + 4);
+            if (endPage - startPage < 4) {
+                startPage = Math.max(1, endPage - 4);
+            }
+
+            for (let i = startPage; i <= endPage; i++) {
+                const btn = document.createElement('button');
+                btn.innerText = i;
+                btn.onclick = () => showPage(i);
+                btn.className = `w-8 h-8 rounded-lg text-xs font-black transition-all shadow-sm ${currentPage === i
+                    ? 'bg-brand-primary text-white shadow-brand-primary/20'
+                    : 'border border-gray-100 bg-white text-gray-500 hover:text-brand-primary hover:border-brand-primary/20'
+                    }`;
+                pageNumbers.appendChild(btn);
+            }
+        }
+    }
+
+    function prevPage() {
+        if (currentPage > 1) showPage(currentPage - 1);
+    }
+
+    function nextPage() {
+        const totalPages = Math.ceil(tableRows.length / rowsPerPage) || 1;
+        if (currentPage < totalPages) showPage(currentPage + 1);
+    }
+
+    function changeEntriesPerPage(val) {
+        rowsPerPage = parseInt(val);
+        showPage(1);
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+        initPagination();
+    });
+</script>
+
+<!-- CREATE SALE MODAL POPUP -->
+<div id="createSaleModal" class="fixed inset-0 bg-gray-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden opacity-0 transition-all duration-300">
+    <div class="bg-white rounded-3xl max-w-2xl w-full max-h-[90vh] overflow-y-auto no-scrollbar shadow-2xl border border-gray-100 flex flex-col transform scale-95 transition-all duration-300">
+        <!-- Modal Header -->
+        <div class="px-8 py-6 border-b border-gray-50 flex justify-between items-center bg-gray-50/50">
+            <div>
+                <h3 class="text-lg font-black text-gray-900 tracking-tight">Catat <span class="text-brand-primary">Transaksi Penjualan</span></h3>
+                <p class="text-[10px] text-gray-400 font-bold uppercase tracking-widest mt-0.5">Registrasi penjualan ternak langsung secara manual oleh Admin</p>
             </div>
-            <div class="flex-grow overflow-y-auto custom-scrollbar">
-                <form id="sale-form" class="p-8 grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <input type="hidden" name="id" id="edit-id">
-                    
-                    <!-- Customer Selection -->
-                    <div class="space-y-2 md:col-span-2">
-                        <label class="text-[10px] font-black text-gray-400 uppercase tracking-widest px-1">Pelanggan (Customer)</label>
-                        <div class="relative">
-                            <select name="customer_id" id="edit-customer" required class="w-full px-6 py-4 bg-gray-50 border-2 border-transparent rounded-2xl outline-none focus:border-brand-primary/20 focus:bg-white transition-all font-bold text-sm appearance-none">
-                                <option value="" disabled selected>Pilih Pelanggan</option>
-                                <option value="manual">[ + Pelanggan Baru / Walk-in ]</option>
-                                <?php foreach ($customers as $c): ?>
-                                    <option value="<?php echo $c['id']; ?>" data-address="<?php echo htmlspecialchars($c['address']); ?>"><?php echo htmlspecialchars($c['name']); ?> (<?php echo htmlspecialchars($c['email']); ?>)</option>
-                                <?php endforeach; ?>
-                            </select>
-                            <i class="fas fa-chevron-down absolute right-6 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none text-xs"></i>
+            <button onclick="closeCreateSaleModal()" class="w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-400 hover:text-gray-700 flex items-center justify-center transition-all">
+                <i class="fas fa-times text-sm"></i>
+            </button>
+        </div>
+
+        <!-- Modal Body Form -->
+        <form method="POST" action="/lautan-ternak-pantura/sales/create" enctype="multipart/form-data" onsubmit="return validateModalPricingForm(event)" class="p-8 space-y-6">
+            
+            <!-- Customer Type Selection -->
+            <div class="bg-brand-light/20 p-6 rounded-2xl border border-brand-primary/10 space-y-4">
+                <h3 class="text-xs font-black text-brand-primary uppercase tracking-wider flex items-center gap-2">
+                    <i class="fas fa-user"></i> Informasi Pelanggan
+                </h3>
+
+                <!-- Selection between New or Registered Customer -->
+                <div class="grid grid-cols-2 gap-4">
+                    <label class="relative flex items-center justify-between p-3.5 bg-white border border-gray-200 rounded-xl cursor-pointer hover:bg-gray-50 transition-all select-none has-[:checked]:border-brand-primary has-[:checked]:bg-brand-light/10">
+                        <div class="text-left">
+                            <p class="text-xs font-black text-gray-900 leading-none">Pelanggan Baru</p>
+                            <p class="text-[8px] text-gray-400 font-bold uppercase mt-1">Belum Terdaftar</p>
                         </div>
-                    </div>
-
-                    <!-- Customer Manual Fields (Hidden by default) -->
-                    <div id="customer-manual-fields" class="hidden md:col-span-2 bg-brand-light/30 p-6 rounded-xl border border-brand-primary/10 space-y-4">
-                        <p class="text-xs font-black text-brand-primary uppercase tracking-wider mb-2"><i class="fas fa-user-plus mr-2"></i>Informasi Pelanggan Baru</p>
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div class="space-y-2">
-                                <label class="text-[9px] font-black text-gray-400 uppercase tracking-widest px-1">Nama Lengkap</label>
-                                <input type="text" name="manual_customer_name" id="manual-customer-name" placeholder="Nama lengkap..." class="w-full px-4 py-3 bg-white border border-gray-100 rounded-xl outline-none focus:border-brand-primary transition-all text-xs font-bold">
-                            </div>
-                            <div class="space-y-2">
-                                <label class="text-[9px] font-black text-gray-400 uppercase tracking-widest px-1">Nomor WhatsApp/HP</label>
-                                <input type="text" name="manual_customer_phone" placeholder="08123456789..." class="w-full px-4 py-3 bg-white border border-gray-100 rounded-xl outline-none focus:border-brand-primary transition-all text-xs font-bold">
-                            </div>
-                            <div class="space-y-2 col-span-1 md:col-span-2">
-                                <label class="text-[9px] font-black text-gray-400 uppercase tracking-widest px-1">Email Pelanggan (Opsional)</label>
-                                <input type="email" name="manual_customer_email" placeholder="email@contoh.com..." class="w-full px-4 py-3 bg-white border border-gray-100 rounded-xl outline-none focus:border-brand-primary transition-all text-xs font-bold">
-                            </div>
-                            <div class="space-y-2 col-span-1 md:col-span-2">
-                                <label class="text-[9px] font-black text-gray-400 uppercase tracking-widest px-1">Alamat Pengiriman</label>
-                                <input type="text" name="manual_customer_address" placeholder="Kecamatan / Kabupaten / Provinsi..." class="w-full px-4 py-3 bg-white border border-gray-100 rounded-xl outline-none focus:border-brand-primary transition-all text-xs font-bold">
-                            </div>
+                        <input type="radio" name="customer_type" value="new" checked
+                            class="accent-brand-primary h-4 w-4" onchange="toggleCustomerType('new')">
+                    </label>
+                    <label class="relative flex items-center justify-between p-3.5 bg-white border border-gray-200 rounded-xl cursor-pointer hover:bg-gray-50 transition-all select-none has-[:checked]:border-brand-primary has-[:checked]:bg-brand-light/10">
+                        <div class="text-left">
+                            <p class="text-xs font-black text-gray-900 leading-none">Pelanggan Terdaftar</p>
+                            <p class="text-[8px] text-gray-400 font-bold uppercase mt-1">Sudah Memiliki Akun</p>
                         </div>
-                    </div>
+                        <input type="radio" name="customer_type" value="registered"
+                            class="accent-brand-primary h-4 w-4" onchange="toggleCustomerType('registered')">
+                    </label>
+                </div>
 
-                    <!-- Existing Customer Address Field (Hidden by default) -->
-                    <div id="existing-customer-address-field" class="hidden md:col-span-2 space-y-2">
-                        <label class="text-[10px] font-black text-gray-400 uppercase tracking-widest px-1">Alamat Pengiriman Pelanggan (Jika Kosong / Ubah)</label>
-                        <input type="text" name="existing_customer_address" id="existing-customer-address" placeholder="Masukkan alamat pengiriman..." class="w-full px-6 py-4 bg-gray-50 border-2 border-transparent rounded-2xl outline-none focus:border-brand-primary/20 focus:bg-white transition-all font-bold text-sm">
+                <!-- Dropdown for Registered Customer (Hidden by Default) -->
+                <div class="space-y-1.5 hidden" id="registered_customer_container">
+                    <label class="text-[10px] font-black text-gray-400 uppercase tracking-widest px-1">Pilih Pelanggan Terdaftar</label>
+                    <div class="relative">
+                        <select id="modal_registered_customer_id" class="w-full px-5 py-3.5 bg-white border border-gray-100 rounded-xl outline-none focus:border-brand-primary transition-all font-bold text-xs appearance-none" onchange="handleCustomerSelectChange()">
+                            <option value="">-- Pilih Pelanggan --</option>
+                            <?php foreach ($customerList as $cust): ?>
+                                <option value="<?php echo $cust['id']; ?>" data-name="<?php echo htmlspecialchars($cust['full_name']); ?>" data-phone="<?php echo htmlspecialchars($cust['phone']); ?>">
+                                    <?php echo htmlspecialchars($cust['full_name']); ?> (<?php echo htmlspecialchars($cust['phone'] ?: 'No WA Kosong'); ?>)
+                                </option>
+                            <?php endforeach; ?>
+                        </select>
+                        <i class="fas fa-chevron-down absolute right-5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none text-xs"></i>
                     </div>
+                </div>
 
-                    <!-- Livestock Selection -->
-                    <div class="space-y-2 md:col-span-2">
-                        <label class="text-[10px] font-black text-gray-400 uppercase tracking-widest px-1">Hewan Ternak</label>
-                        <div class="relative">
-                            <select name="livestock_id" id="edit-livestock" required class="w-full px-6 py-4 bg-gray-50 border-2 border-transparent rounded-2xl outline-none focus:border-brand-primary/20 focus:bg-white transition-all font-bold text-sm appearance-none">
-                                <option value="" disabled selected>Pilih Hewan Ternak</option>
-                                <?php foreach ($livestockDropdown as $l): ?>
-                                    <?php 
-                                        $statusLabel = [
-                                            'available' => 'Tersedia',
-                                            'booked' => 'Dipesan',
-                                            'sold' => 'Terjual'
-                                        ][$l['status']] ?? $l['status'];
-                                    ?>
-                                    <option value="<?php echo $l['id']; ?>" data-price="<?php echo $l['price']; ?>">
-                                        <?php echo htmlspecialchars($l['code']); ?>: <?php echo htmlspecialchars($l['type']); ?> - Rp <?php echo number_format($l['price'], 0, ',', '.'); ?> [<?php echo $statusLabel; ?>]
+                <!-- Name and Phone Inputs -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="space-y-1.5">
+                        <label class="text-[10px] font-black text-gray-400 uppercase tracking-widest px-1">Nama Pelanggan</label>
+                        <input type="text" id="modal_customer_name" name="customer_name" required placeholder="Nama lengkap pelanggan..." 
+                            class="w-full px-5 py-3.5 bg-white border border-gray-100 rounded-xl outline-none focus:border-brand-primary transition-all text-xs font-bold text-gray-700">
+                    </div>
+                    <div class="space-y-1.5">
+                        <label class="text-[10px] font-black text-gray-400 uppercase tracking-widest px-1">No. WhatsApp / HP</label>
+                        <input type="text" id="modal_customer_phone" name="customer_phone" required placeholder="Contoh: 08123456789..." 
+                            class="w-full px-5 py-3.5 bg-white border border-gray-100 rounded-xl outline-none focus:border-brand-primary transition-all text-xs font-bold text-gray-700">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Order Details Section -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Select Livestock -->
+                <div class="space-y-1.5">
+                    <label class="text-[10px] font-black text-gray-400 uppercase tracking-widest px-1">Pilih Hewan Ternak</label>
+                    <div class="relative">
+                        <select name="livestock_id" id="modal_livestock_id" required onchange="handleModalLivestockChange()"
+                            class="w-full px-5 py-3.5 bg-gray-50 border border-transparent rounded-xl outline-none focus:border-brand-primary/20 focus:bg-white transition-all font-bold text-xs appearance-none">
+                            <option value="">-- Pilih Hewan --</option>
+                            <?php if (!empty($livestockList)): ?>
+                                <?php foreach ($livestockList as $live): ?>
+                                    <option value="<?php echo $live['id']; ?>" data-price="<?php echo $live['selling_price']; ?>" data-stock="<?php echo $live['stock']; ?>">
+                                        <?php echo htmlspecialchars($live['breed']); ?> - Rp <?php echo number_format($live['selling_price'], 0, ',', '.'); ?> (Stok: <?php echo $live['stock']; ?>)
                                     </option>
                                 <?php endforeach; ?>
-                            </select>
-                            <i class="fas fa-chevron-down absolute right-6 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none text-xs"></i>
-                        </div>
+                            <?php endif; ?>
+                        </select>
+                        <i class="fas fa-chevron-down absolute right-5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none text-xs"></i>
+                    </div>
+                </div>
+
+                <!-- Quantity -->
+                <div class="space-y-1.5">
+                    <label class="text-[10px] font-black text-gray-400 uppercase tracking-widest px-1">Kuantitas / Jumlah (Ekor)</label>
+                    <input type="number" name="qty" id="modal_qty" value="1" min="1" required oninput="modalCalculateTotal()"
+                        class="w-full px-5 py-3.5 bg-gray-50 border border-transparent rounded-xl outline-none focus:border-brand-primary/20 focus:bg-white transition-all font-bold text-xs">
+                </div>
+            </div>
+
+            <!-- Payment Section -->
+            <div class="bg-gray-50/50 p-6 rounded-2xl border border-gray-100 space-y-5">
+                <h3 class="text-xs font-black text-gray-900 uppercase tracking-wider flex items-center gap-2">
+                    <i class="fas fa-credit-card text-brand-primary"></i> Spesifikasi Pembayaran
+                </h3>
+
+                <!-- Row 1: Payment Type (Jenis Pembayaran) -->
+                <div class="space-y-2">
+                    <label class="text-[10px] font-black text-gray-400 uppercase tracking-widest px-1">Jenis Pembayaran</label>
+                    <div class="grid grid-cols-2 gap-4">
+                        <label class="relative flex items-center justify-between p-3.5 bg-white border border-gray-200 rounded-xl cursor-pointer hover:bg-gray-50 transition-all select-none has-[:checked]:border-brand-primary has-[:checked]:bg-brand-light/10">
+                            <div class="text-left">
+                                <p class="text-xs font-black text-gray-900 leading-none">Uang Muka (DP)</p>
+                                <p class="text-[8px] text-gray-400 font-bold uppercase mt-1">Pembayaran Bertahap</p>
+                            </div>
+                            <input type="radio" name="payment_type" value="dp" checked
+                                class="accent-brand-primary h-4 w-4" onchange="toggleModalPaymentType('dp')">
+                        </label>
+                        <label class="relative flex items-center justify-between p-3.5 bg-white border border-gray-200 rounded-xl cursor-pointer hover:bg-gray-50 transition-all select-none has-[:checked]:border-brand-primary has-[:checked]:bg-brand-light/10">
+                            <div class="text-left">
+                                <p class="text-xs font-black text-gray-900 leading-none">Lunas / Full</p>
+                                <p class="text-[8px] text-gray-400 font-bold uppercase mt-1">Bayar Sekaligus</p>
+                            </div>
+                            <input type="radio" name="payment_type" value="lunas"
+                                class="accent-brand-primary h-4 w-4" onchange="toggleModalPaymentType('lunas')">
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Row 2: Amount & Method (Symmetric Side-by-Side) -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <!-- Amount Input -->
+                    <div class="space-y-1.5 transition-all duration-300" id="modal_amount_input_container">
+                        <label class="text-[10px] font-black text-gray-400 uppercase tracking-widest px-1">Jumlah Uang Muka (DP) (Rp)</label>
+                        <input type="text" id="modal_payment_amount" name="payment_amount" required onkeyup="formatCurrency(this); modalCalculateTotal()" placeholder="Contoh: 1.000.000..." 
+                            class="w-full px-5 py-3.5 bg-white border border-gray-100 rounded-xl outline-none focus:border-brand-primary transition-all text-xs font-bold text-gray-700">
                     </div>
 
-                    <!-- Total Price -->
-                    <div class="space-y-2 md:col-span-2">
-                        <label class="text-[10px] font-black text-gray-400 uppercase tracking-widest px-1">Total Harga Transaksi (Rp)</label>
-                        <input type="number" name="total_price" id="edit-price" required class="w-full px-6 py-4 bg-gray-50 border-2 border-transparent rounded-2xl outline-none focus:border-brand-primary/20 focus:bg-white transition-all font-bold text-sm" placeholder="Masukkan total harga">
-                    </div>
-
-                    <!-- Status -->
-                    <div class="space-y-2">
-                        <label class="text-[10px] font-black text-gray-400 uppercase tracking-widest px-1">Status Transaksi</label>
-                        <div class="relative">
-                            <select name="status" id="edit-status" required class="w-full px-6 py-4 bg-gray-50 border-2 border-transparent rounded-2xl outline-none focus:border-brand-primary/20 focus:bg-white transition-all font-bold text-sm appearance-none">
-                                <option value="pending">Menunggu Pembayaran</option>
-                                <option value="waiting_payment">Menunggu Bukti Transfer</option>
-                                <option value="payment_review">Review Bukti Bayar</option>
-                                <option value="paid">Sudah Dibayar</option>
-                                <option value="processing">Sedang Diproses</option>
-                                <option value="delivered">Hewan Dikirim</option>
-                                <option value="completed">Selesai</option>
-                                <option value="cancelled">Dibatalkan</option>
-                            </select>
-                            <i class="fas fa-chevron-down absolute right-6 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none text-xs"></i>
-                        </div>
-                    </div>
-
-                    <!-- Payment Method -->
-                    <div class="space-y-2">
+                    <!-- Payment Method Select -->
+                    <div class="space-y-1.5">
                         <label class="text-[10px] font-black text-gray-400 uppercase tracking-widest px-1">Metode Pembayaran</label>
                         <div class="relative">
-                            <select name="payment_method" id="edit-payment-method" class="w-full px-6 py-4 bg-gray-50 border-2 border-transparent rounded-2xl outline-none focus:border-brand-primary/20 focus:bg-white transition-all font-bold text-sm appearance-none">
-                                <option value="Cash">Cash (Tunai)</option>
-                                <option value="Transfer Bank">Transfer Bank</option>
+                            <select name="payment_method" id="modal_payment_method" required
+                                class="w-full px-5 py-3.5 bg-white border border-gray-100 rounded-xl outline-none focus:border-brand-primary transition-all font-bold text-xs appearance-none">
+                                <option value="Transfer Bank Manual">Transfer Bank Manual</option>
+                                <option value="Tunai / Cash">Tunai / Cash</option>
                             </select>
-                            <i class="fas fa-chevron-down absolute right-6 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none text-xs"></i>
+                            <i class="fas fa-chevron-down absolute right-5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none text-xs"></i>
                         </div>
                     </div>
+                </div>
 
-                    <!-- Payment Proof Upload -->
-                    <div class="space-y-2" id="payment-proof-field" style="display: none;">
-                        <label class="text-[10px] font-black text-gray-400 uppercase tracking-widest px-1">Upload Bukti Transfer (Opsional)</label>
-                        <input type="file" name="payment_proof" id="edit-payment-proof" accept="image/*" class="w-full px-4 py-3 bg-gray-50 border-2 border-transparent rounded-2xl outline-none focus:border-brand-primary/20 focus:bg-white transition-all font-bold text-sm">
+                <!-- Row 3: Optional Payment Proof File Input -->
+                <div class="space-y-1.5">
+                    <label class="text-[10px] font-black text-gray-400 uppercase tracking-widest px-1">Upload Bukti Pembayaran (Opsional)</label>
+                    <div class="relative flex items-center justify-center w-full">
+                        <label class="flex flex-col items-center justify-center w-full h-24 border-2 border-dashed border-gray-200 hover:border-brand-primary/50 bg-white rounded-2xl cursor-pointer hover:bg-gray-50/50 transition-all">
+                            <div class="flex flex-col items-center justify-center pt-5 pb-6">
+                                <i class="fas fa-cloud-upload-alt text-gray-400 text-lg mb-1.5"></i>
+                                <p class="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Format: JPG, PNG, WEBP (Max 2MB)</p>
+                            </div>
+                            <input type="file" name="payment_proof" accept="image/*" class="hidden">
+                        </label>
                     </div>
+                </div>
 
-                    <!-- Order Date -->
-                    <div class="space-y-2">
-                        <label class="text-[10px] font-black text-gray-400 uppercase tracking-widest px-1">Tanggal Transaksi</label>
-                        <input type="datetime-local" name="order_date" id="edit-date" class="w-full px-6 py-4 bg-gray-50 border-2 border-transparent rounded-2xl outline-none focus:border-brand-primary/20 focus:bg-white transition-all font-bold text-sm">
+                <!-- Row 4: Dynamic Calculations Summary -->
+                <div class="bg-white p-4 rounded-xl border border-gray-100 space-y-2.5">
+                    <div class="flex justify-between items-center text-xs">
+                        <span class="font-bold text-gray-400">Harga Satuan:</span>
+                        <span class="font-black text-gray-900" id="modal_label_price">Rp 0</span>
                     </div>
-
-                    <div class="md:col-span-2 pt-6 flex gap-4">
-                        <button type="button" onclick="closeModal()" class="flex-1 px-6 py-4 bg-gray-100 text-gray-500 rounded-2xl font-black text-sm hover:bg-gray-200 transition-all">Batal</button>
-                        <button type="submit" id="submit-btn" class="flex-1 px-6 py-4 bg-brand-primary text-white rounded-2xl font-black text-sm hover:bg-brand-dark shadow-xl shadow-brand-primary/20 transition-all flex items-center justify-center gap-2">
-                            <span>Simpan Transaksi</span>
-                        </button>
+                    <div class="flex justify-between items-center text-xs">
+                        <span class="font-bold text-gray-400">Total Transaksi:</span>
+                        <span class="font-black text-brand-primary" id="modal_label_total">Rp 0</span>
                     </div>
-                </form>
+                    <div class="flex justify-between items-center text-xs hidden" id="modal_remaining_container">
+                        <span class="font-bold text-gray-400">Sisa Tagihan Pelunasan:</span>
+                        <span class="font-black text-orange-500" id="modal_label_remaining">Rp 0</span>
+                    </div>
+                </div>
             </div>
-        </div>
-    </div>
 
-    <!-- Image Preview Modal -->
-    <div id="image-modal-overlay" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-[1001] hidden items-center justify-center p-4 transition-all duration-300 opacity-0" onclick="closeImageModal()">
-        <div class="relative max-w-4xl w-full max-h-[90vh] flex flex-col items-center justify-center" onclick="event.stopPropagation()">
-            <button type="button" onclick="closeImageModal()" class="absolute -top-12 right-0 text-white hover:text-gray-300 transition-colors">
-                <i class="fas fa-times text-2xl"></i>
-            </button>
-            <img id="image-modal-preview" src="" class="max-w-full max-h-[80vh] object-contain rounded-lg shadow-2xl">
-        </div>
-    </div>
-
-    <!-- Modal Delete Confirmation -->
-    <div id="delete-overlay" class="fixed inset-0 bg-black/60 backdrop-blur-md z-[1001] hidden items-center justify-center p-4 transition-all duration-300 opacity-0">
-        <div id="delete-content" class="bg-white rounded-2xl w-full max-w-md overflow-hidden shadow-2xl transition-all duration-300 scale-90 opacity-0 p-10 text-center">
-            <div class="w-20 h-20 rounded-full bg-red-50 flex items-center justify-center mx-auto mb-6">
-                <i class="fas fa-trash text-red-500 text-3xl"></i>
+            <!-- Notes -->
+            <div class="space-y-1.5">
+                <label class="text-[10px] font-black text-gray-400 uppercase tracking-widest px-1">Catatan Penjualan (Opsional)</label>
+                <textarea name="notes" placeholder="Catatan opsional mengenai pengiriman atau request khusus..."
+                    class="w-full px-5 py-3.5 bg-gray-50 border border-gray-100 rounded-xl outline-none focus:border-brand-primary focus:bg-white transition-all font-bold text-xs min-h-[80px]"></textarea>
             </div>
-            <h3 class="text-xl font-black text-gray-900 tracking-tight mb-2">Hapus Transaksi?</h3>
-            <p id="delete-message" class="text-sm text-gray-400 font-bold mb-8">Apakah Anda yakin ingin menghapus data penjualan ini? Status hewan ternak akan dikembalikan menjadi tersedia.</p>
-            <input type="hidden" id="delete-id">
-            <div class="flex gap-4">
-                <button onclick="closeDeleteModal()" class="flex-1 px-6 py-4 bg-gray-100 text-gray-500 rounded-2xl font-black text-sm hover:bg-gray-200 transition-all">Batal</button>
-                <button onclick="executeDelete()" id="delete-btn" class="flex-1 px-6 py-4 bg-red-500 text-white rounded-2xl font-black text-sm hover:bg-red-600 shadow-xl shadow-red-500/20 transition-all flex items-center justify-center gap-2">
-                    <i class="fas fa-trash"></i> <span>Ya, Hapus</span>
+
+            <!-- Footer Buttons -->
+            <div class="flex gap-4 border-t border-gray-50 pt-6">
+                <button type="button" onclick="closeCreateSaleModal()"
+                    class="flex-1 bg-gray-50 hover:bg-gray-100 text-gray-700 py-4 rounded-xl font-black text-xs uppercase tracking-widest transition-all text-center flex items-center justify-center">
+                    Batal
+                </button>
+                <button type="submit"
+                    class="flex-1 bg-brand-primary text-white py-4 rounded-xl font-black text-xs uppercase tracking-widest shadow-xl shadow-brand-primary/20 hover:bg-brand-dark transition-all flex items-center justify-center gap-2">
+                    <i class="fas fa-check-circle"></i> Catat Transaksi
                 </button>
             </div>
-        </div>
+        </form>
     </div>
+</div>
 
-    <script>
-        function showSuccessNotification(message) { showToast(message, 'success'); }
-        function showErrorNotification(message) { showToast(message, 'error'); }
+<script>
+    let modalActivePrice = 0;
+    let modalActiveStock = 0;
 
-        function filterSalesTable() {
-            const query = document.getElementById('search-input').value.toLowerCase();
-            const rows = document.querySelectorAll('.sale-row');
-            let visibleCount = 0;
+    function formatCurrency(input) {
+        let value = input.value.replace(/\D/g, "");
+        if (value !== "") {
+            input.value = new Intl.NumberFormat("id-ID").format(parseInt(value));
+        } else {
+            input.value = "";
+        }
+    }
 
-            rows.forEach(row => {
-                const customer = row.querySelector('.customer-name-column').innerText.toLowerCase();
-                const livestock = row.querySelector('.livestock-info-column').innerText.toLowerCase();
-                const orderCode = row.querySelector('td:nth-child(2) p').innerText.toLowerCase();
+    function formatNumber(num) {
+        if (!num) return "Rp 0";
+        return "Rp " + new Intl.NumberFormat("id-ID").format(Math.round(num));
+    }
 
-                if (customer.includes(query) || livestock.includes(query) || orderCode.includes(query)) {
-                    row.style.display = '';
-                    visibleCount++;
-                } else {
-                    row.style.display = 'none';
-                }
-            });
-
-            // Handle no data search result fallback
-            let noDataRow = document.getElementById('no-search-results-row');
-            if (visibleCount === 0) {
-                if (!noDataRow) {
-                    noDataRow = document.createElement('tr');
-                    noDataRow.id = 'no-search-results-row';
-                    noDataRow.innerHTML = `
-                        <td colspan="7" class="px-8 py-10 text-center text-gray-400 font-bold">
-                            Tidak ada penjualan yang cocok dengan pencarian Anda.
-                        </td>
-                    `;
-                    document.querySelector('#sales-table tbody').appendChild(noDataRow);
-                }
-            } else {
-                if (noDataRow) noDataRow.remove();
-            }
+    function openCreateSaleModal() {
+        // Reset Customer Type to New Customer (default)
+        const radioNew = document.querySelector('input[name="customer_type"][value="new"]');
+        if (radioNew) {
+            radioNew.checked = true;
+            toggleCustomerType('new');
+        }
+        
+        // Reset Registered Customer Select
+        const custSelect = document.getElementById('modal_registered_customer_id');
+        if (custSelect) {
+            custSelect.selectedIndex = 0;
         }
 
-        // Toggles manual custom fields in UI
-        document.getElementById('edit-customer').addEventListener('change', function() {
-            const manualFields = document.getElementById('customer-manual-fields');
-            const existingAddressField = document.getElementById('existing-customer-address-field');
-            if (this.value === 'manual') {
-                manualFields.classList.remove('hidden');
-                existingAddressField.classList.add('hidden');
-                document.getElementById('manual-customer-name').required = true;
-            } else if (this.value) {
-                manualFields.classList.add('hidden');
-                document.getElementById('manual-customer-name').required = false;
-                
-                const selectedOption = this.options[this.selectedIndex];
-                const address = selectedOption.getAttribute('data-address');
-                existingAddressField.classList.remove('hidden');
-                document.getElementById('existing-customer-address').value = address || '';
-            } else {
-                manualFields.classList.add('hidden');
-                existingAddressField.classList.add('hidden');
-            }
-        });
-
-        document.getElementById('edit-payment-method').addEventListener('change', function() {
-            if (this.value === 'Transfer Bank') {
-                document.getElementById('payment-proof-field').style.display = 'block';
-            } else {
-                document.getElementById('payment-proof-field').style.display = 'none';
-            }
-        });
-
-        document.getElementById('edit-livestock').addEventListener('change', function() {
-            // Auto-fill total price with selected livestock price
-            const selectedOption = this.options[this.selectedIndex];
-            if (selectedOption) {
-                const price = selectedOption.getAttribute('data-price');
-                document.getElementById('edit-price').value = price || '';
-            }
-        });
-
-        function handleLivestockChange() {
-            const select = document.getElementById('edit-livestock');
-            if (select.value === 'manual') return;
-
-            const selectedOption = select.options[select.selectedIndex];
-            if (selectedOption) {
-                const price = selectedOption.getAttribute('data-price');
-                if (price) {
-                    document.getElementById('edit-price').value = price;
-                }
-            }
+        // Reset inputs
+        const nameInput = document.getElementById('modal_customer_name');
+        if (nameInput) {
+            nameInput.value = "";
+            nameInput.readOnly = false;
+            nameInput.classList.remove('bg-gray-50', 'text-gray-500');
+        }
+        const phoneInput = document.getElementById('modal_customer_phone');
+        if (phoneInput) {
+            phoneInput.value = "";
+            phoneInput.readOnly = false;
+            phoneInput.classList.remove('bg-gray-50', 'text-gray-500');
         }
 
-        function openModal(type, data = null) {
-            const overlay = document.getElementById('modal-overlay');
-            const content = document.getElementById('modal-content');
-            const title = document.getElementById('modal-title');
-            const form = document.getElementById('sale-form');
+        // Reset Livestock Select
+        const liveSelect = document.getElementById('modal_livestock_id');
+        if (liveSelect) {
+            liveSelect.selectedIndex = 0;
+        }
+        modalActivePrice = 0;
+        modalActiveStock = 0;
+        document.getElementById('modal_label_price').innerText = "Rp 0";
+
+        // Reset Quantity
+        const qtyInput = document.getElementById('modal_qty');
+        if (qtyInput) {
+            qtyInput.value = 1;
+        }
+
+        // Reset Payment Type to DP (default)
+        const radioDP = document.querySelector('input[name="payment_type"][value="dp"]');
+        if (radioDP) {
+            radioDP.checked = true;
+            toggleModalPaymentType('dp');
+        }
+        
+        // Reset Payment Amount
+        const payAmtInput = document.getElementById('modal_payment_amount');
+        if (payAmtInput) {
+            payAmtInput.value = "";
+        }
+
+        // Recalculate
+        modalCalculateTotal();
+
+        const modal = document.getElementById('createSaleModal');
+        modal.classList.remove('hidden');
+        document.body.classList.add('overflow-hidden');
+        setTimeout(() => {
+            modal.classList.remove('opacity-0');
+            modal.querySelector('.transform').classList.remove('scale-95');
+        }, 10);
+    }
+
+    function closeCreateSaleModal() {
+        const modal = document.getElementById('createSaleModal');
+        modal.classList.add('opacity-0');
+        modal.querySelector('.transform').classList.add('scale-95');
+        document.body.classList.remove('overflow-hidden');
+        setTimeout(() => {
+            modal.classList.add('hidden');
+        }, 300);
+    }
+
+    function toggleCustomerType(type) {
+        const registeredContainer = document.getElementById('registered_customer_container');
+        const nameInput = document.getElementById('modal_customer_name');
+        const phoneInput = document.getElementById('modal_customer_phone');
+        
+        if (type === 'registered') {
+            registeredContainer.classList.remove('hidden');
+            nameInput.readOnly = true;
+            phoneInput.readOnly = true;
+            nameInput.classList.add('bg-gray-50', 'text-gray-500');
+            phoneInput.classList.add('bg-gray-50', 'text-gray-500');
+            handleCustomerSelectChange();
+        } else {
+            registeredContainer.classList.add('hidden');
+            nameInput.readOnly = false;
+            phoneInput.readOnly = false;
+            nameInput.classList.remove('bg-gray-50', 'text-gray-500');
+            phoneInput.classList.remove('bg-gray-50', 'text-gray-500');
+            nameInput.value = "";
+            phoneInput.value = "";
+        }
+    }
+
+    function handleCustomerSelectChange() {
+        const select = document.getElementById('modal_registered_customer_id');
+        const selectedOption = select.options[select.selectedIndex];
+        const nameInput = document.getElementById('modal_customer_name');
+        const phoneInput = document.getElementById('modal_customer_phone');
+        
+        if (selectedOption && select.value !== "") {
+            nameInput.value = selectedOption.getAttribute('data-name') || "";
+            phoneInput.value = selectedOption.getAttribute('data-phone') || "";
+        } else {
+            nameInput.value = "";
+            phoneInput.value = "";
+        }
+    }
+
+    function handleModalLivestockChange() {
+        const select = document.getElementById('modal_livestock_id');
+        const selectedOption = select.options[select.selectedIndex];
+        
+        if (selectedOption && select.value !== "") {
+            modalActivePrice = parseFloat(selectedOption.getAttribute('data-price')) || 0;
+            modalActiveStock = parseInt(selectedOption.getAttribute('data-stock')) || 0;
             
-            overlay.classList.remove('hidden');
-            overlay.classList.add('flex');
+            document.getElementById('modal_label_price').innerText = formatNumber(modalActivePrice);
             
-            setTimeout(() => {
-                overlay.classList.remove('opacity-0');
-                content.classList.remove('opacity-0', 'scale-90');
-            }, 10);
-            
-            document.getElementById('customer-manual-fields').classList.add('hidden');
-            document.getElementById('existing-customer-address-field').classList.add('hidden');
-            document.getElementById('payment-proof-field').style.display = 'none';
-            document.getElementById('manual-customer-name').required = false;
+            const qtyInput = document.getElementById('modal_qty');
+            qtyInput.max = modalActiveStock;
+        } else {
+            modalActivePrice = 0;
+            modalActiveStock = 0;
+            document.getElementById('modal_label_price').innerText = "Rp 0";
+        }
+        
+        modalCalculateTotal();
+    }
 
-            if (type === 'edit' && data) {
-                title.innerText = 'Edit Transaksi Penjualan';
-                document.getElementById('edit-id').value = data.id;
-                document.getElementById('edit-customer').value = data.customer_id;
-                document.getElementById('edit-customer').dispatchEvent(new Event('change'));
-                document.getElementById('edit-livestock').value = data.livestock_id;
-                document.getElementById('edit-price').value = data.total_price;
-                document.getElementById('edit-status').value = data.status;
-                
-                if (data.order_date) {
-                    const date = new Date(data.order_date);
-                    const tzoffset = date.getTimezoneOffset() * 60000; 
-                    const localISOTime = (new Date(date - tzoffset)).toISOString().slice(0, 16);
-                    document.getElementById('edit-date').value = localISOTime;
-                } else {
-                    document.getElementById('edit-date').value = '';
-                }
-            } else {
-                title.innerText = 'Tambah Penjualan Baru';
-                form.reset();
-                document.getElementById('edit-id').value = '';
-                
-                const now = new Date();
-                const tzoffset = now.getTimezoneOffset() * 60000;
-                const localISOTime = (new Date(now - tzoffset)).toISOString().slice(0, 16);
-                document.getElementById('edit-date').value = localISOTime;
+    function modalCalculateTotal() {
+        const qty = parseInt(document.getElementById('modal_qty').value) || 1;
+        const total = modalActivePrice * qty;
+        
+        document.getElementById('modal_label_total').innerText = formatNumber(total);
+        
+        const payType = document.querySelector('input[name="payment_type"]:checked').value;
+        const payAmtInput = document.getElementById('modal_payment_amount');
+        const remainingContainer = document.getElementById('modal_remaining_container');
+        const remainingLabel = document.getElementById('modal_label_remaining');
+        
+        if (payType === 'lunas') {
+            const cleanVal = Math.round(total).toString();
+            payAmtInput.value = new Intl.NumberFormat("id-ID").format(cleanVal);
+            remainingContainer.classList.add('hidden');
+        } else {
+            // DP payment type
+            const rawAmt = parseFloat(payAmtInput.value.replace(/\D/g, "")) || 0;
+            const remaining = Math.max(0, total - rawAmt);
+            remainingLabel.innerText = formatNumber(remaining);
+            remainingContainer.classList.remove('hidden');
+        }
+    }
+
+    function toggleModalPaymentType(type) {
+        const container = document.getElementById('modal_amount_input_container');
+        const label = container.querySelector('label');
+        const payAmtInput = document.getElementById('modal_payment_amount');
+        
+        if (type === 'lunas') {
+            container.classList.add('opacity-60');
+            payAmtInput.readOnly = true;
+            label.innerText = "Jumlah Pembayaran Lunas (Otomatis) (Rp)";
+        } else {
+            container.classList.remove('opacity-60');
+            payAmtInput.readOnly = false;
+            payAmtInput.value = "";
+            label.innerText = "Jumlah Uang Muka (DP) (Rp)";
+        }
+        
+        modalCalculateTotal();
+    }
+
+    function validateModalPricingForm(event) {
+        // Validate Customer Type Select
+        const customerType = document.querySelector('input[name="customer_type"]:checked').value;
+        if (customerType === 'registered') {
+            const customerSelect = document.getElementById('modal_registered_customer_id');
+            if (customerSelect.value === "") {
+                showToast('Silakan pilih pelanggan terdaftar terlebih dahulu!', 'error');
+                event.preventDefault();
+                return false;
             }
         }
 
-        function closeModal() {
-            const overlay = document.getElementById('modal-overlay');
-            const content = document.getElementById('modal-content');
-            content.classList.add('opacity-0', 'scale-90');
-            overlay.classList.add('opacity-0');
-            setTimeout(() => {
-                overlay.classList.add('hidden');
-                overlay.classList.remove('flex');
-            }, 300);
+        const select = document.getElementById('modal_livestock_id');
+        if (select.value === "") {
+            showToast('Silakan pilih hewan terlebih dahulu!', 'error');
+            event.preventDefault();
+            return false;
         }
 
-        function openDeleteModal(id, code) {
-            document.getElementById('delete-id').value = id;
-            document.getElementById('delete-message').innerText = `Apakah Anda yakin ingin menghapus transaksi "${code}"? Tindakan ini tidak bisa dibatalkan dan status hewan terkait akan dikembalikan menjadi 'Tersedia'.`;
-            const overlay = document.getElementById('delete-overlay');
-            const content = document.getElementById('delete-content');
-            overlay.classList.remove('hidden');
-            overlay.classList.add('flex');
-            setTimeout(() => {
-                overlay.classList.remove('opacity-0');
-                content.classList.remove('opacity-0', 'scale-90');
-            }, 10);
+        const qty = parseInt(document.getElementById('modal_qty').value) || 0;
+        if (qty > modalActiveStock) {
+            showToast('Jumlah melebihi stok yang tersedia!', 'error');
+            event.preventDefault();
+            return false;
         }
 
-        function closeDeleteModal() {
-            const overlay = document.getElementById('delete-overlay');
-            const content = document.getElementById('delete-content');
-            content.classList.add('opacity-0', 'scale-90');
-            overlay.classList.add('opacity-0');
-            setTimeout(() => {
-                overlay.classList.add('hidden');
-                overlay.classList.remove('flex');
-            }, 300);
-        }
+        const payType = document.querySelector('input[name="payment_type"]:checked').value;
+        const total = modalActivePrice * qty;
+        
+        const payAmtInput = document.getElementById('modal_payment_amount');
+        const rawAmt = parseFloat(payAmtInput.value.replace(/\D/g, "")) || 0;
 
-        async function executeDelete() {
-            const id = document.getElementById('delete-id').value;
-            const btn = document.getElementById('delete-btn');
-            btn.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i> <span>Menghapus...</span>';
-            btn.disabled = true;
-            try {
-                const res = await fetch(`/lautan-ternak-pantura/api/admin/delete_sale?id=${id}`);
-                const data = await res.json();
-                if (data.success) {
-                    closeDeleteModal();
-                    showSuccessNotification(data.message);
-                    const row = document.getElementById(`sale-row-${id}`);
-                    row.classList.add('opacity-0', '-translate-y-4');
-                    setTimeout(() => {
-                        row.remove();
-                        location.reload();
-                    }, 1000);
-                } else {
-                    showErrorNotification(data.message);
-                }
-            } catch (err) {
-                showErrorNotification('Gagal menghubungi server');
+        if (payType === 'dp') {
+            if (rawAmt <= 0) {
+                showToast('Pembayaran DP harus diisi dan lebih dari 0!', 'error');
+                event.preventDefault();
+                return false;
             }
-            btn.innerHTML = '<i class="fas fa-trash"></i> <span>Ya, Hapus</span>';
-            btn.disabled = false;
-        }
-
-        document.getElementById('sale-form').onsubmit = async function(e) {
-            e.preventDefault();
-            if (!this.checkValidity()) { this.reportValidity(); return; }
-
-            const formData = new FormData(this);
-            const isEdit = formData.get('id') && formData.get('id') !== '';
-            const url = isEdit ? '/lautan-ternak-pantura/api/admin/update_sale' : '/lautan-ternak-pantura/api/admin/add_sale';
-
-            const btn = document.getElementById('submit-btn');
-            const originalText = btn.innerHTML;
-            btn.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i> <span>Menyimpan...</span>';
-            btn.disabled = true;
-
-            try {
-                const res = await fetch(url, { 
-                    method: 'POST', 
-                    body: formData
-                });
-                const data = await res.json();
-                
-                if (data.success) {
-                    showSuccessNotification(data.message);
-                    closeModal();
-                    setTimeout(() => location.reload(), 1000);
-                } else {
-                    showErrorNotification(data.message);
-                    btn.innerHTML = originalText;
-                    btn.disabled = false;
-                }
-            } catch (err) {
-                showErrorNotification('Koneksi bermasalah atau data tidak valid');
-                btn.innerHTML = originalText;
-                btn.disabled = false;
+            if (rawAmt >= total) {
+                showToast('Pembayaran DP tidak boleh melebihi atau sama dengan total harga. Gunakan tipe Lunas.', 'error');
+                event.preventDefault();
+                return false;
             }
-        };
-
-        // Client-side pagination engine
-        let currentPage = 1;
-        let rowsPerPage = 10;
-        let tableRows = [];
-
-        function initPagination() {
-            tableRows = Array.from(document.querySelectorAll('#sales-table tbody tr')).filter(row => row.id !== 'no-data-row');
-            showPage(1);
-        }
-
-        function showPage(page) {
-            currentPage = page;
-            const totalRows = tableRows.length;
-            const totalPages = Math.ceil(totalRows / rowsPerPage) || 1;
-            
-            if (currentPage < 1) currentPage = 1;
-            if (currentPage > totalPages) currentPage = totalPages;
-
-            const startIdx = (currentPage - 1) * rowsPerPage;
-            const endIdx = Math.min(startIdx + rowsPerPage, totalRows);
-
-            tableRows.forEach((row, idx) => {
-                if (idx >= startIdx && idx < endIdx) {
-                    row.style.display = "";
-                } else {
-                    row.style.display = "none";
-                }
-            });
-
-            updatePaginationUI(totalPages, totalRows, startIdx, endIdx);
-        }
-
-        function updatePaginationUI(totalPages, totalRows, startIdx, endIdx) {
-            const prevBtn = document.getElementById('prev-btn');
-            const nextBtn = document.getElementById('next-btn');
-            const pageNumbers = document.getElementById('page-numbers');
-            const infoText = document.getElementById('entries-info');
-
-            if (prevBtn) prevBtn.disabled = currentPage === 1;
-            if (nextBtn) nextBtn.disabled = currentPage === totalPages;
-
-            // Apply opacity styles for disabled state
-            if (prevBtn) {
-                if (currentPage === 1) prevBtn.classList.add('opacity-40', 'cursor-not-allowed');
-                else prevBtn.classList.remove('opacity-40', 'cursor-not-allowed');
-            }
-            if (nextBtn) {
-                if (currentPage === totalPages) nextBtn.classList.add('opacity-40', 'cursor-not-allowed');
-                else nextBtn.classList.remove('opacity-40', 'cursor-not-allowed');
-            }
-
-            if (infoText) {
-                if (totalRows === 0) {
-                    infoText.innerText = "Tidak ada data";
-                } else {
-                    infoText.innerText = `Menampilkan ${startIdx + 1}-${endIdx} dari ${totalRows} data`;
-                }
-            }
-
-            if (pageNumbers) {
-                pageNumbers.innerHTML = "";
-                let startPage = Math.max(1, currentPage - 2);
-                let endPage = Math.min(totalPages, startPage + 4);
-                if (endPage - startPage < 4) {
-                    startPage = Math.max(1, endPage - 4);
-                }
-
-                for (let i = startPage; i <= endPage; i++) {
-                    const btn = document.createElement('button');
-                    btn.innerText = i;
-                    btn.onclick = () => showPage(i);
-                    btn.className = `w-8 h-8 rounded-lg text-xs font-black transition-all shadow-sm ${
-                        currentPage === i 
-                            ? 'bg-brand-primary text-white shadow-brand-primary/20' 
-                            : 'border border-gray-100 bg-white text-gray-500 hover:text-brand-primary hover:border-brand-primary/20'
-                    }`;
-                    pageNumbers.appendChild(btn);
-                }
+        } else {
+            if (rawAmt < total) {
+                showToast('Nominal pelunasan tidak mencukupi total harga transaksi!', 'error');
+                event.preventDefault();
+                return false;
             }
         }
 
-        function prevPage() {
-            if (currentPage > 1) showPage(currentPage - 1);
-        }
+        // Set raw numeric values back to inputs before submission
+        payAmtInput.value = rawAmt;
+        return true;
+    }
+</script>
 
-        function nextPage() {
-            const totalPages = Math.ceil(tableRows.length / rowsPerPage) || 1;
-            if (currentPage < totalPages) showPage(currentPage + 1);
-        }
-
-        function changeEntriesPerPage(val) {
-            rowsPerPage = parseInt(val);
-            showPage(1);
-        }
-
-        window.addEventListener('DOMContentLoaded', () => {
-            initPagination();
-        });
-
-        function openImageModal(src) {
-            const overlay = document.getElementById('image-modal-overlay');
-            const img = document.getElementById('image-modal-preview');
-            img.src = src;
-            
-            overlay.classList.remove('hidden');
-            overlay.classList.add('flex');
-            
-            setTimeout(() => {
-                overlay.classList.remove('opacity-0');
-            }, 10);
-        }
-
-        function closeImageModal() {
-            const overlay = document.getElementById('image-modal-overlay');
-            if (overlay) {
-                overlay.classList.add('opacity-0');
-                setTimeout(() => {
-                    overlay.classList.add('hidden');
-                    overlay.classList.remove('flex');
-                }, 300);
-            }
-        }
-    </script>
-</body>
-</html>
+<?php require_once 'views/admin/includes/footer.php'; ?>

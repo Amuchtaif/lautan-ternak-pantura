@@ -6,12 +6,32 @@ if (session_status() === PHP_SESSION_NONE) {
 
 // Simple security check
 if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'admin') {
-    header("Location: /lautan-ternak-pantura/views/auth/login");
+    header("Location: /lautan-ternak-pantura/auth/login");
     exit();
 }
 
 // Fetch Dynamic Stats
+$totalUsers = 0;
+$activeLivestock = 0;
+$pendingVerifications = 0;
+$totalSavings = 0;
+$recentTransactions = [];
+
+function tableHasColumn($conn, $table, $column) {
+    try {
+        $stmt = $conn->prepare("SHOW COLUMNS FROM {$table} LIKE ?");
+        $stmt->execute([$column]);
+        return (bool)$stmt->fetch(PDO::FETCH_ASSOC);
+    } catch (PDOException $e) {
+        return false;
+    }
+}
+
 try {
+    $usesNewSavingsTransactions = tableHasColumn($conn, 'savings_transactions', 'savings_plan_id');
+    $txPlanColumn = $usesNewSavingsTransactions ? 'savings_plan_id' : 'plan_id';
+    $txStatusColumn = $usesNewSavingsTransactions ? 'transaction_status' : 'status';
+
     // Total Users
     $stmt = $conn->query("SELECT COUNT(*) FROM users WHERE role != 'admin'");
     $totalUsers = $stmt->fetchColumn();
@@ -21,20 +41,20 @@ try {
     $activeLivestock = $stmt->fetchColumn();
 
     // Pending Verifications
-    $stmt = $conn->query("SELECT COUNT(*) FROM savings_transactions WHERE status = 'pending'");
+    $stmt = $conn->query("SELECT COUNT(*) FROM savings_transactions WHERE {$txStatusColumn} = 'pending'");
     $pendingVerifications = $stmt->fetchColumn();
 
     // Total Savings
-    $stmt = $conn->query("SELECT SUM(amount) FROM savings_transactions WHERE status = 'verified'");
+    $stmt = $conn->query("SELECT SUM(amount) FROM savings_transactions WHERE {$txStatusColumn} = 'verified'");
     $totalSavings = $stmt->fetchColumn() ?: 0;
 
     // Recent Transactions for the table
     $stmt = $conn->query("
-        SELECT st.*, u.name as user_name, sp.id as plan_id 
+        SELECT st.*, st.{$txStatusColumn} AS status, u.name as user_name, sp.id as plan_id 
         FROM savings_transactions st
-        JOIN savings_plans sp ON st.plan_id = sp.id
+        JOIN savings_plans sp ON st.{$txPlanColumn} = sp.id
         JOIN users u ON sp.customer_id = u.id
-        WHERE st.status = 'pending'
+        WHERE st.{$txStatusColumn} = 'pending'
         ORDER BY st.created_at DESC
         LIMIT 5
     ");

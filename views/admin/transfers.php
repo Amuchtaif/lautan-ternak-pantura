@@ -3,16 +3,33 @@ require_once '../../config/database.php';
 if (session_status() === PHP_SESSION_NONE) { session_start(); }
 
 if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'admin') {
-    header("Location: /lautan-ternak-pantura/views/auth/login");
+    header("Location: /lautan-ternak-pantura/auth/login");
     exit();
 }
 
 // Fetch Pending Transactions
+$transactions = [];
+
+function savingsColumnExists($conn, $table, $column) {
+    try {
+        $stmt = $conn->prepare("SHOW COLUMNS FROM {$table} LIKE ?");
+        $stmt->execute([$column]);
+        return (bool)$stmt->fetch(PDO::FETCH_ASSOC);
+    } catch (PDOException $e) {
+        return false;
+    }
+}
+
 try {
+    $usesNewSavingsTransactions = savingsColumnExists($conn, 'savings_transactions', 'savings_plan_id');
+    $txPlanColumn = $usesNewSavingsTransactions ? 'savings_plan_id' : 'plan_id';
+    $txStatusColumn = $usesNewSavingsTransactions ? 'transaction_status' : 'status';
+    $txProofColumn = $usesNewSavingsTransactions ? 'payment_proof' : 'proof_of_payment';
+
     $stmt = $conn->query("
-        SELECT st.*, sp.target_amount, u.name as customer_name, u.email as customer_email 
+        SELECT st.*, st.{$txStatusColumn} AS status, st.{$txProofColumn} AS proof_of_payment, sp.target_amount, u.name as customer_name, u.email as customer_email 
         FROM savings_transactions st
-        JOIN savings_plans sp ON st.plan_id = sp.id
+        JOIN savings_plans sp ON st.{$txPlanColumn} = sp.id
         JOIN users u ON sp.customer_id = u.id
         ORDER BY st.created_at DESC
     ");

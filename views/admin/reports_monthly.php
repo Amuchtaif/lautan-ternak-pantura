@@ -32,26 +32,69 @@ require_once 'views/admin/includes/sidebar.php';
         </div>
 
         <!-- Metric Cards -->
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <!-- Monthly Revenue Card -->
-            <div class="bg-white rounded-2xl shadow-sm p-10 border border-gray-100/50 flex items-center group hover:shadow-xl transition-all duration-300">
-                <div class="w-16 h-16 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-2xl shrink-0 group-hover:scale-110 transition-transform">
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            <!-- Pendapatan Penjualan Bulanan Card -->
+            <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-100/50 flex items-center group hover:shadow-xl transition-all duration-300">
+                <div class="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-lg shrink-0 group-hover:scale-110 transition-transform">
                     <i class="fas fa-wallet"></i>
                 </div>
-                <div class="ml-6">
-                    <p class="text-[10px] text-gray-400 font-black uppercase tracking-widest mb-1">Total Pendapatan Bulanan</p>
-                    <p class="text-3xl font-black text-gray-900">Rp <?php echo number_format($summary['total_revenue'], 0, ',', '.'); ?></p>
+                <div class="ml-4">
+                    <p class="text-[10px] text-gray-400 font-black uppercase tracking-widest mb-1">Pendapatan Penjualan</p>
+                    <p class="text-lg font-black text-gray-900">Rp <?php echo number_format($summary['total_revenue'], 0, ',', '.'); ?></p>
+                    <span class="text-[9px] text-emerald-600 font-bold bg-emerald-50 px-1.5 py-0.5 rounded">Kas Masuk Terverifikasi</span>
                 </div>
             </div>
 
-            <!-- Monthly Transactions Card -->
-            <div class="bg-white rounded-2xl shadow-sm p-10 border border-gray-100/50 flex items-center group hover:shadow-xl transition-all duration-300">
-                <div class="w-16 h-16 rounded-2xl bg-brand-primary/10 text-brand-primary flex items-center justify-center text-2xl shrink-0 group-hover:scale-110 transition-transform">
-                    <i class="fas fa-chart-line"></i>
+            <!-- Pengeluaran Pembelian Bulanan Card -->
+            <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-100/50 flex items-center group hover:shadow-xl transition-all duration-300">
+                <div class="w-12 h-12 rounded-2xl bg-rose-50 text-rose-600 flex items-center justify-center text-lg shrink-0 group-hover:scale-110 transition-transform">
+                    <i class="fas fa-shopping-cart"></i>
                 </div>
-                <div class="ml-6">
-                    <p class="text-[10px] text-gray-400 font-black uppercase tracking-widest mb-1">Total Transaksi Masuk</p>
-                    <p class="text-3xl font-black text-gray-900"><?php echo $summary['total_transactions']; ?> Transaksi</p>
+                <div class="ml-4">
+                    <p class="text-[10px] text-gray-400 font-black uppercase tracking-widest mb-1">Pengeluaran Pembelian</p>
+                    <p class="text-lg font-black text-gray-900">Rp <?php echo number_format($summary['purchase_expense'], 0, ',', '.'); ?></p>
+                    <span class="text-[9px] text-rose-600 font-bold bg-rose-50 px-1.5 py-0.5 rounded">Kas Keluar Beli Ternak</span>
+                </div>
+            </div>
+
+            <!-- Laba / Rugi Bersih Bulanan Card -->
+            <?php
+            $marginIsNegative = $summary['net_margin'] < 0;
+            $marginBg = $marginIsNegative ? 'bg-rose-50' : 'bg-emerald-50';
+            $marginText = $marginIsNegative ? 'text-rose-600' : 'text-emerald-600';
+            $marginLabel = $marginIsNegative ? 'Rugi Bersih Bulanan' : 'Laba Bersih Bulanan';
+            $marginIcon = $marginIsNegative ? 'fa-arrow-trend-down' : 'fa-arrow-trend-up';
+            ?>
+            <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-100/50 flex items-center group hover:shadow-xl transition-all duration-300">
+                <div class="w-12 h-12 rounded-2xl <?php echo $marginBg; ?> <?php echo $marginText; ?> flex items-center justify-center text-lg shrink-0 group-hover:scale-110 transition-transform">
+                    <i class="fas <?php echo $marginIcon; ?>"></i>
+                </div>
+                <div class="ml-4">
+                    <p class="text-[10px] text-gray-400 font-black uppercase tracking-widest mb-1"><?php echo $marginLabel; ?></p>
+                    <p class="text-lg font-black <?php echo $marginIsNegative ? 'text-rose-600' : 'text-gray-900'; ?>">
+                        <?php echo ($marginIsNegative ? '-' : '') . 'Rp ' . number_format(abs($summary['net_margin']), 0, ',', '.'); ?>
+                    </p>
+                    <span class="text-[9px] <?php echo $marginText; ?> font-bold <?php echo $marginBg; ?> px-1.5 py-0.5 rounded">Selisih Kas Masuk & Keluar</span>
+                </div>
+            </div>
+
+            <!-- Utang & Piutang Dagang Bulanan Card -->
+            <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-100/50 flex items-center group hover:shadow-xl transition-all duration-300">
+                <div class="w-12 h-12 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center text-lg shrink-0 group-hover:scale-110 transition-transform">
+                    <i class="fas fa-balance-scale"></i>
+                </div>
+                <div class="ml-4 flex-grow">
+                    <p class="text-[10px] text-gray-400 font-black uppercase tracking-widest mb-2 border-b border-gray-50 pb-1">Utang & Piutang Dagang</p>
+                    <div class="space-y-1">
+                        <div class="flex justify-between items-center text-xs">
+                            <span class="text-gray-400 font-bold text-[9px] mr-2">Piutang (Sales):</span>
+                            <span class="font-black text-gray-800">Rp <?php echo number_format($summary['total_receivables'], 0, ',', '.'); ?></span>
+                        </div>
+                        <div class="flex justify-between items-center text-xs border-t border-gray-50/50 pt-1">
+                            <span class="text-gray-400 font-bold text-[9px] mr-2">Utang (Breeder):</span>
+                            <span class="font-black text-gray-800">Rp <?php echo number_format($summary['total_payables'], 0, ',', '.'); ?></span>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>

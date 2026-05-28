@@ -135,7 +135,14 @@
                 const errors = {
                     'invalid_data': 'Data yang dikirimkan tidak valid!',
                     'upload_failed': 'Unggah file bukti transfer gagal!',
-                    'nama_sohibul_qurban_wajib_diisi': 'Nama Sohibul Qurban wajib diisi!'
+                    'nama_sohibul_qurban_wajib_diisi': 'Nama Sohibul Qurban wajib diisi!',
+                    'username_taken': 'Username sudah digunakan!',
+                    'username_invalid': 'Username minimal 4 karakter dan hanya boleh huruf, angka, titik, strip, atau underscore!',
+                    'password_weak': 'Password minimal 8 karakter serta mengandung huruf dan angka!',
+                    'password_mismatch': 'Konfirmasi password tidak cocok!',
+                    'email_taken': 'Email sudah digunakan!',
+                    'email_invalid': 'Format email tidak valid!',
+                    'livestock_unavailable': 'Hewan target tidak tersedia!'
                 };
                 const displayMsg = errors[msg] || msg || 'Terjadi kesalahan!';
                 showToast(displayMsg, 'error');
@@ -149,7 +156,7 @@
 </head>
 
 <body class="bg-gray-50 flex flex-col min-h-screen">
-    <nav class="bg-white shadow-sm sticky top-0 z-50">
+    <nav id="main-navbar" class="bg-white sticky top-0 z-50 transition-all duration-300 border-b border-transparent">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex justify-between h-16">
                 <div class="flex items-center">
@@ -184,14 +191,14 @@
                 <div class="flex items-center space-x-4">
                     <?php if (isset($_SESSION['user_id'])): ?>
                         <?php
-                        $dashboard_url = '/lautan-ternak-pantura/views/' . $_SESSION['role'] . '/dashboard.php';
+                        $dashboard_url = $_SESSION['role'] === 'customer' ? '/lautan-ternak-pantura/customer/dashboard' : '/lautan-ternak-pantura/views/' . $_SESSION['role'] . '/dashboard';
                         ?>
                         <a href="<?php echo $dashboard_url; ?>"
                             class="hidden md:inline-flex text-gray-500 hover:text-brand-primary font-medium text-sm transition">Dashboard</a>
                         <a href="/lautan-ternak-pantura/api/auth/logout"
                             class="hidden md:inline-flex text-red-500 hover:text-red-700 font-medium text-sm transition">Logout</a>
                     <?php else: ?>
-                        <a href="/lautan-ternak-pantura/views/auth/login"
+                        <a href="/lautan-ternak-pantura/auth/login"
                             class="hidden md:inline-flex items-center gap-2 bg-brand-primary/10 text-brand-primary px-4 py-2 rounded-full text-sm font-semibold hover:bg-brand-primary hover:text-white transition-all shadow-sm border border-brand-primary/20">
                             <i class="fas fa-user-circle text-lg"></i> Masuk / Daftar
                         </a>
@@ -236,7 +243,42 @@
                     <a href="/lautan-ternak-pantura/api/auth/logout"
                         class="text-red-600 hover:bg-red-50 hover:text-red-700 block px-3 py-2 rounded-md text-base font-medium">Logout</a>
                 <?php else: ?>
-                    <a href="/lautan-ternak-pantura/views/auth/login"
+                    <a href="/lautan-ternak-pantura/auth/login"
+                        class="bg-brand-primary text-white block px-3 py-4 rounded-xl text-center text-base font-bold shadow-md mx-2">Masuk
+                        / Daftar</a>
+                <?php endif; ?>
+            </div>
+        </div>
+    </nav>
+
+        <!-- Mobile menu, show/hide based on menu state. -->
+        <div class="md:hidden hidden bg-white border-t border-gray-100" id="mobile-menu">
+            <div class="px-2 pt-2 pb-3 space-y-1 sm:px-3">
+                <a href="/lautan-ternak-pantura/index"
+                    class="<?php echo $is_home ? 'bg-brand-light text-brand-primary' : 'text-gray-600 hover:bg-brand-light hover:text-brand-primary'; ?> block px-3 py-2 rounded-md text-base font-medium mobile-nav-link" data-nav="beranda">Beranda</a>
+                <a href="/lautan-ternak-pantura/index#keunggulan"
+                    class="text-gray-600 hover:bg-brand-light hover:text-brand-primary block px-3 py-2 rounded-md text-base font-medium mobile-nav-link" data-nav="keunggulan">Keunggulan</a>
+                <a href="/lautan-ternak-pantura/index#alur"
+                    class="text-gray-600 hover:bg-brand-light hover:text-brand-primary block px-3 py-2 rounded-md text-base font-medium mobile-nav-link" data-nav="alur">Cara
+                    Kerja</a>
+                <a href="/lautan-ternak-pantura/index#testimoni"
+                    class="text-gray-600 hover:bg-brand-light hover:text-brand-primary block px-3 py-2 rounded-md text-base font-medium mobile-nav-link" data-nav="testimoni">Testimoni</a>
+                <a href="/lautan-ternak-pantura/index#galeri"
+                    class="text-gray-600 hover:bg-brand-light hover:text-brand-primary block px-3 py-2 rounded-md text-base font-medium mobile-nav-link" data-nav="galeri">Galeri</a>
+                <a href="/lautan-ternak-pantura/marketplace"
+                    class="<?php echo strpos($current_uri, 'marketplace') !== false ? 'bg-brand-light text-brand-primary' : 'text-gray-600 hover:bg-brand-light hover:text-brand-primary'; ?> block px-3 py-2 rounded-md text-base font-medium">Katalog
+                    Hewan</a>
+                <a href="/lautan-ternak-pantura/tabungan"
+                    class="<?php echo strpos($current_uri, 'tabungan') !== false ? 'bg-brand-light text-brand-primary' : 'text-gray-600 hover:bg-brand-light hover:text-brand-primary'; ?> block px-3 py-2 rounded-md text-base font-medium">Tabungan
+                    Qurban</a>
+                <hr class="border-gray-100 my-2">
+                <?php if (isset($_SESSION['user_id'])): ?>
+                    <a href="<?php echo $dashboard_url; ?>"
+                        class="text-gray-600 hover:bg-brand-light hover:text-brand-primary block px-3 py-2 rounded-md text-base font-medium">Dashboard</a>
+                    <a href="/lautan-ternak-pantura/api/auth/logout"
+                        class="text-red-600 hover:bg-red-50 hover:text-red-700 block px-3 py-2 rounded-md text-base font-medium">Logout</a>
+                <?php else: ?>
+                    <a href="/lautan-ternak-pantura/auth/login"
                         class="bg-brand-primary text-white block px-3 py-4 rounded-xl text-center text-base font-bold shadow-md mx-2">Masuk
                         / Daftar</a>
                 <?php endif; ?>
@@ -257,22 +299,32 @@
             };
             
             const mobileLinks = document.querySelectorAll('.mobile-nav-link');
+            const navbar = document.getElementById('main-navbar');
 
             function updateActiveLink() {
-                const scrollPos = window.scrollY + 100;
+                const scrollPos = window.scrollY;
+                const scrollPosWithOffset = scrollPos + 100;
                 let activeSection = null;
+
+                if (scrollPos > 10) {
+                    navbar.classList.add('bg-white/80', 'backdrop-blur-md', 'shadow-sm', 'border-gray-100');
+                    navbar.classList.remove('bg-white', 'border-transparent');
+                } else {
+                    navbar.classList.add('bg-white', 'border-transparent');
+                    navbar.classList.remove('bg-white/80', 'backdrop-blur-md', 'shadow-sm', 'border-gray-100');
+                }
 
                 // Check if we are on the index page
                 if (window.location.pathname.includes('index') || window.location.pathname === '/lautan-ternak-pantura/') {
                     for (const sectionId of sections) {
                         const el = document.getElementById(sectionId);
-                        if (el && scrollPos >= el.offsetTop && scrollPos < el.offsetTop + el.offsetHeight) {
+                        if (el && scrollPosWithOffset >= el.offsetTop && scrollPosWithOffset < el.offsetTop + el.offsetHeight) {
                             activeSection = sectionId;
                             break;
                         }
                     }
 
-                    if (!activeSection && scrollPos < 500) {
+                    if (!activeSection && scrollPosWithOffset < 500) {
                         activeSection = 'beranda';
                     }
 

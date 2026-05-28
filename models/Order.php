@@ -70,7 +70,7 @@ class Order {
     public function getById($id) {
         $query = "SELECT o.*, 
                  u.name as customer_name, u.email as customer_email, u.phone as customer_phone, u.address as customer_address,
-                 l.name as livestock_name, l.code as livestock_code, l.image as livestock_image, l.breed as livestock_breed, l.category as livestock_category, l.weight as livestock_weight
+                 l.breed as livestock_name, l.livestock_code as livestock_code, l.image as livestock_image, l.breed as livestock_breed, 'umum' as livestock_category, l.weight as livestock_weight
                  FROM " . $this->table . " o
                  JOIN users u ON o.customer_id = u.id
                  JOIN livestock l ON o.livestock_id = l.id
@@ -84,7 +84,7 @@ class Order {
     public function getByCode($code) {
         $query = "SELECT o.*, 
                  u.name as customer_name, u.email as customer_email, u.phone as customer_phone, u.address as customer_address,
-                 l.name as livestock_name, l.code as livestock_code, l.image as livestock_image, l.breed as livestock_breed, l.category as livestock_category, l.weight as livestock_weight
+                 l.breed as livestock_name, l.livestock_code as livestock_code, l.image as livestock_image, l.breed as livestock_breed, 'umum' as livestock_category, l.weight as livestock_weight
                  FROM " . $this->table . " o
                  JOIN users u ON o.customer_id = u.id
                  JOIN livestock l ON o.livestock_id = l.id
@@ -96,7 +96,7 @@ class Order {
     }
 
     public function getByCustomerId($customerId) {
-        $query = "SELECT o.*, l.name as livestock_name, l.code as livestock_code, l.image as livestock_image
+        $query = "SELECT o.*, l.breed as livestock_name, l.livestock_code as livestock_code, l.image as livestock_image
                  FROM " . $this->table . " o
                  JOIN livestock l ON o.livestock_id = l.id
                  WHERE o.customer_id = ?
@@ -107,7 +107,7 @@ class Order {
     }
 
     public function getAll($status = '', $search = '') {
-        $query = "SELECT o.*, u.name as customer_name, l.name as livestock_name, l.code as livestock_code, p.payment_proof
+        $query = "SELECT o.*, u.name as customer_name, l.breed as livestock_name, l.livestock_code as livestock_code, p.payment_proof
                  FROM " . $this->table . " o
                  JOIN users u ON o.customer_id = u.id
                  JOIN livestock l ON o.livestock_id = l.id

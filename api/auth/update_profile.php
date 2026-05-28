@@ -9,7 +9,7 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 }
 
 if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'customer') {
-    header("Location: /lautan-ternak-pantura/views/auth/login");
+    header("Location: /lautan-ternak-pantura/auth/login");
     exit();
 }
 

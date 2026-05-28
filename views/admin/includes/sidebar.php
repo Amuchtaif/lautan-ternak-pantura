@@ -69,20 +69,20 @@ $currentUri = $_SERVER['REQUEST_URI'];
             <span>Kelola Pengguna</span>
         </a>
 
-        <a href="/lautan-ternak-pantura/views/admin/transfers"
-            class="sidebar-link flex items-center gap-4 px-4 py-3.5 rounded-r-lg font-bold text-sm transition-all group <?php echo $currentPage == 'transfers' || strpos($currentUri, '/views/admin/transfers') !== false ? 'active text-brand-primary' : 'text-gray-500'; ?>">
+        <a href="/lautan-ternak-pantura/savings/management"
+            class="sidebar-link flex items-center gap-4 px-4 py-3.5 rounded-r-lg font-bold text-sm transition-all group <?php echo strpos($currentUri, '/savings/management') !== false || strpos($currentUri, '/savings/adminDetail') !== false || $currentPage == 'transfers' ? 'active text-brand-primary' : 'text-gray-500'; ?>">
             <i class="fa-solid fa-receipt text-lg"></i>
-            <span>Verifikasi Tabungan</span>
+            <span>Tabungan Qurban</span>
         </a>
 
-        <a href="/lautan-ternak-pantura/views/admin/livestock"
-            class="sidebar-link flex items-center gap-4 px-4 py-3.5 rounded-r-lg font-bold text-sm transition-all group <?php echo $currentPage == 'livestock' || strpos($currentUri, '/views/admin/livestock') !== false ? 'active text-brand-primary' : 'text-gray-500'; ?>">
+        <a href="/lautan-ternak-pantura/livestock/index"
+            class="sidebar-link flex items-center gap-4 px-4 py-3.5 rounded-r-lg font-bold text-sm transition-all group <?php echo strpos($currentUri, '/livestock') !== false || $currentPage == 'livestock' ? 'active text-brand-primary' : 'text-gray-500'; ?>">
             <i class="fa-solid fa-paw text-lg"></i>
             <span>Data Hewan Ternak</span>
         </a>
 
-        <a href="/lautan-ternak-pantura/order/transactions"
-            class="sidebar-link flex items-center gap-4 px-4 py-3.5 rounded-r-lg font-bold text-sm transition-all group <?php echo strpos($currentUri, '/order/transactions') !== false || strpos($currentUri, '/order/transaction_detail') !== false || $currentPage == 'transactions' || $currentPage == 'transaction_detail' ? 'active text-brand-primary' : 'text-gray-500'; ?>">
+        <a href="/lautan-ternak-pantura/sales/index"
+            class="sidebar-link flex items-center gap-4 px-4 py-3.5 rounded-r-lg font-bold text-sm transition-all group <?php echo strpos($currentUri, '/sales') !== false || $currentPage == 'sales' ? 'active text-brand-primary' : 'text-gray-500'; ?>">
             <i class="fa-solid fa-shopping-cart text-lg"></i>
             <span>Penjualan Hewan</span>
         </a>
@@ -105,6 +105,20 @@ $currentUri = $_SERVER['REQUEST_URI'];
             class="sidebar-link flex items-center gap-4 px-4 py-3.5 rounded-r-lg font-bold text-sm transition-all group <?php echo strpos($currentUri, '/report/monthly') !== false || $currentPage == 'reports_monthly' ? 'active text-brand-primary' : 'text-gray-500'; ?>">
             <i class="fa-solid fa-chart-pie text-lg"></i>
             <span>Laporan Bulanan</span>
+        </a>
+
+        <p class="px-4 text-[10px] font-black text-gray-400 uppercase tracking-widest pt-6 mb-4">Laporan Tabungan</p>
+
+        <a href="/lautan-ternak-pantura/savingsReport/daily"
+            class="sidebar-link flex items-center gap-4 px-4 py-3.5 rounded-r-lg font-bold text-sm transition-all group <?php echo strpos($currentUri, '/savingsReport/daily') !== false ? 'active text-brand-primary' : 'text-gray-500'; ?>">
+            <i class="fa-solid fa-piggy-bank text-lg"></i>
+            <span>Harian Tabungan</span>
+        </a>
+
+        <a href="/lautan-ternak-pantura/savingsReport/monthly"
+            class="sidebar-link flex items-center gap-4 px-4 py-3.5 rounded-r-lg font-bold text-sm transition-all group <?php echo strpos($currentUri, '/savingsReport/monthly') !== false ? 'active text-brand-primary' : 'text-gray-500'; ?>">
+            <i class="fa-solid fa-chart-column text-lg"></i>
+            <span>Bulanan Tabungan</span>
         </a>
     </nav>
 

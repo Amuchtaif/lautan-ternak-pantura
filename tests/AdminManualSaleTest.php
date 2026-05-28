@@ -19,18 +19,19 @@ it('dapat mencatat transaksi penjualan manual oleh admin untuk pelanggan walk-in
     $livestock = new Livestock($db);
     $livestock->create([
         'code' => 'LTP-MAN-123',
+        'peternak_name' => 'Pak Budi Breeder',
         'name' => 'Kambing PE Offline',
-        'category' => 'aqiqah',
         'breed' => 'PE',
         'age' => 12,
         'weight' => 45.00,
         'gender' => 'male',
-        'price' => 3500000.00,
+        'selling_price' => 3500000.00,
+        'purchase_price' => 3000000.00,
         'stock' => 1,
         'status' => 'sold' // Sold immediately
     ]);
 
-    $stmtL = $db->query("SELECT id FROM livestock WHERE code = 'LTP-MAN-123'");
+    $stmtL = $db->query("SELECT id FROM livestock WHERE livestock_code = 'LTP-MAN-123'");
     $livestockId = $stmtL->fetchColumn();
 
     // Act - Create Order manually

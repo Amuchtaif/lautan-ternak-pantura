@@ -69,6 +69,43 @@ require_once 'views/admin/includes/sidebar.php';
                         </div>
                     </div>
 
+                    <!-- Pilihan Metode Pembayaran Pemasok -->
+                    <div class="space-y-2">
+                        <label class="text-[10px] font-black text-gray-400 uppercase tracking-widest px-1">Metode Pembayaran Pemasok</label>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <label class="relative flex items-center justify-between p-4 bg-gray-50 border-2 border-transparent rounded-2xl cursor-pointer hover:bg-gray-100 transition-all select-none has-[:checked]:border-brand-primary has-[:checked]:bg-brand-light/10">
+                                <div class="flex items-center gap-3">
+                                    <i class="fas fa-hand-holding-usd text-brand-primary text-base"></i>
+                                    <div class="text-left">
+                                        <p class="text-xs font-black text-gray-900 leading-none">Uang Muka (DP)</p>
+                                        <p class="text-[9px] text-gray-400 font-bold uppercase mt-1">Pembayaran Bertahap</p>
+                                    </div>
+                                </div>
+                                <input type="radio" name="payment_type" value="dp" required class="accent-brand-primary h-4 w-4" onchange="togglePaymentType('dp')">
+                            </label>
+                            <label class="relative flex items-center justify-between p-4 bg-gray-50 border-2 border-transparent rounded-2xl cursor-pointer hover:bg-gray-100 transition-all select-none has-[:checked]:border-brand-primary has-[:checked]:bg-brand-light/10">
+                                <div class="flex items-center gap-3">
+                                    <i class="fas fa-money-bill-wave text-brand-primary text-base"></i>
+                                    <div class="text-left">
+                                        <p class="text-xs font-black text-gray-900 leading-none">Lunas / Full</p>
+                                        <p class="text-[9px] text-gray-400 font-bold uppercase mt-1">Bayar Sekaligus</p>
+                                    </div>
+                                </div>
+                                <input type="radio" name="payment_type" value="lunas" required class="accent-brand-primary h-4 w-4" onchange="togglePaymentType('lunas')">
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- Input Jumlah Uang Muka DP (Hanya Tampil jika DP dipilih) -->
+                    <div id="amount_paid_container" class="space-y-2 hidden transition-all duration-300">
+                        <label class="text-[10px] font-black text-gray-400 uppercase tracking-widest px-1">Jumlah Uang Muka (DP) (Rp)</label>
+                        <div class="relative">
+                            <span class="absolute left-6 top-1/2 -translate-y-1/2 text-gray-400 font-bold text-sm">Rp</span>
+                            <input type="text" id="amount_paid" name="amount_paid" oninput="formatCurrency(this)" placeholder="Contoh: 5.000.000..."
+                                class="w-full pl-14 pr-6 py-4 bg-gray-50 border-2 border-transparent rounded-2xl outline-none focus:border-brand-primary/20 focus:bg-white transition-all font-bold text-sm">
+                        </div>
+                    </div>
+
                     <!-- Pilihan Hewan dari Database (Hanya Tampil jika Existing) -->
                     <div id="existing-livestock-field" class="space-y-6 hidden">
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -81,8 +118,8 @@ require_once 'views/admin/includes/sidebar.php';
                                         <option value="">-- Pilih Hewan --</option>
                                         <?php if (!empty($livestockList)): ?>
                                             <?php foreach ($livestockList as $live): ?>
-                                                <option value="<?php echo $live['id']; ?>">
-                                                    <?php echo htmlspecialchars($live['name']); ?> [<?php echo htmlspecialchars($live['code']); ?>] - Rp <?php echo number_format($live['price'], 0, ',', '.'); ?>
+                                                <option value="<?php echo $live['id']; ?>" data-price="<?php echo $live['price']; ?>">
+                                                    <?php echo htmlspecialchars($live['name']); ?> - Rp <?php echo number_format($live['price'], 0, ',', '.'); ?>
                                                 </option>
                                             <?php endforeach; ?>
                                         <?php endif; ?>
@@ -112,22 +149,30 @@ require_once 'views/admin/includes/sidebar.php';
                         <!-- Name -->
                         <div class="space-y-2">
                             <label class="text-[10px] font-black text-gray-400 uppercase tracking-widest px-1">Nama Hewan</label>
-                            <input type="text" name="livestock_name" required placeholder="Contoh: Sapi Limosin A3"
+                            <input type="text" name="livestock_name" required placeholder="masukkan nama hewan"
                                 class="w-full px-6 py-4 bg-gray-50 border-2 border-transparent rounded-2xl outline-none focus:border-brand-primary/20 focus:bg-white transition-all font-bold text-sm">
                         </div>
 
-                        <!-- Qty -->
+                        <!-- Peternak Name -->
                         <div class="space-y-2">
-                            <label class="text-[10px] font-black text-gray-400 uppercase tracking-widest px-1">Kuantitas / Jumlah (Ekor)</label>
-                            <input type="number" name="qty" value="1" min="1" required
+                            <label class="text-[10px] font-black text-gray-400 uppercase tracking-widest px-1">Mitra Peternak / Supplier</label>
+                            <input type="text" name="peternak_name" required placeholder="masukkan nama peternak"
                                 class="w-full px-6 py-4 bg-gray-50 border-2 border-transparent rounded-2xl outline-none focus:border-brand-primary/20 focus:bg-white transition-all font-bold text-sm">
                         </div>
 
-                        <!-- Breed -->
+                        <!-- Breed (replaced with category) -->
                         <div class="space-y-2">
-                            <label class="text-[10px] font-black text-gray-400 uppercase tracking-widest px-1">Ras / Breed</label>
-                            <input type="text" name="breed" required placeholder="Contoh: Limosin, Etawa..."
-                                class="w-full px-6 py-4 bg-gray-50 border-2 border-transparent rounded-2xl outline-none focus:border-brand-primary/20 focus:bg-white transition-all font-bold text-sm">
+                            <label class="text-[10px] font-black text-gray-400 uppercase tracking-widest px-1">Kategori Hewan</label>
+                            <div class="relative">
+                                <select name="breed" required
+                                    class="w-full px-6 py-4 bg-gray-50 border-2 border-transparent rounded-2xl outline-none focus:border-brand-primary/20 focus:bg-white transition-all font-bold text-sm appearance-none cursor-pointer">
+                                    <option value="">-- PILIH KATEGORI --</option>
+                                    <option value="kambing">Kambing</option>
+                                    <option value="sapi">Sapi</option>
+                                    <option value="domba">Domba</option>
+                                </select>
+                                <i class="fas fa-chevron-down absolute right-6 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none text-xs"></i>
+                            </div>
                         </div>
 
                         <!-- Gender -->
@@ -150,32 +195,45 @@ require_once 'views/admin/includes/sidebar.php';
                                 class="w-full px-6 py-4 bg-gray-50 border-2 border-transparent rounded-2xl outline-none focus:border-brand-primary/20 focus:bg-white transition-all font-bold text-sm">
                         </div>
 
-                        <!-- Age -->
-                        <div class="space-y-2">
-                            <label class="text-[10px] font-black text-gray-400 uppercase tracking-widest px-1">Usia Hewan (Bulan)</label>
-                            <input type="number" name="age" required placeholder="Contoh: 24"
-                                class="w-full px-6 py-4 bg-gray-50 border-2 border-transparent rounded-2xl outline-none focus:border-brand-primary/20 focus:bg-white transition-all font-bold text-sm">
-                        </div>
+                        <!-- Qty & Usia (Age) in one row -->
+                        <div class="grid grid-cols-2 gap-6 md:col-span-2">
+                            <!-- Qty -->
+                            <div class="space-y-2">
+                                <label class="text-[10px] font-black text-gray-400 uppercase tracking-widest px-1">Kuantitas / Jumlah (Ekor)</label>
+                                <input type="number" name="qty" value="1" min="1" required
+                                    class="w-full px-6 py-4 bg-gray-50 border-2 border-transparent rounded-2xl outline-none focus:border-brand-primary/20 focus:bg-white transition-all font-bold text-sm">
+                            </div>
 
-                        <!-- Purchase Price -->
-                        <div class="space-y-2">
-                            <label class="text-[10px] font-black text-gray-400 uppercase tracking-widest px-1">Harga Beli dari Pemasok (Rp)</label>
-                            <div class="relative">
-                                <span class="absolute left-6 top-1/2 -translate-y-1/2 text-gray-400 font-bold text-sm">Rp</span>
-                                <input type="text" id="purchase_price" name="purchase_price" required
-                                    oninput="formatCurrency(this)"
-                                    class="w-full pl-14 pr-6 py-4 bg-gray-50 border-2 border-transparent rounded-2xl outline-none focus:border-brand-primary/20 focus:bg-white transition-all font-bold text-sm">
+                            <!-- Age -->
+                            <div class="space-y-2">
+                                <label class="text-[10px] font-black text-gray-400 uppercase tracking-widest px-1">Usia Hewan (Bulan)</label>
+                                <input type="number" name="age" required placeholder="Contoh: 24"
+                                    class="w-full px-6 py-4 bg-gray-50 border-2 border-transparent rounded-2xl outline-none focus:border-brand-primary/20 focus:bg-white transition-all font-bold text-sm">
                             </div>
                         </div>
 
-                        <!-- Selling Price -->
-                        <div class="space-y-2">
-                            <label class="text-[10px] font-black text-gray-400 uppercase tracking-widest px-1">Harga Jual Marketplace (Rp)</label>
-                            <div class="relative">
-                                <span class="absolute left-6 top-1/2 -translate-y-1/2 text-gray-400 font-bold text-sm">Rp</span>
-                                <input type="text" id="selling_price" name="selling_price" required
-                                    oninput="formatCurrency(this)"
-                                    class="w-full pl-14 pr-6 py-4 bg-gray-50 border-2 border-transparent rounded-2xl outline-none focus:border-brand-primary/20 focus:bg-white transition-all font-bold text-sm">
+                        <!-- Harga Beli & Jual in one row -->
+                        <div class="grid grid-cols-2 gap-6 md:col-span-2">
+                            <!-- Purchase Price -->
+                            <div class="space-y-2">
+                                <label class="text-[10px] font-black text-gray-400 uppercase tracking-widest px-1">Harga Beli dari Pemasok (Rp)</label>
+                                <div class="relative">
+                                    <span class="absolute left-6 top-1/2 -translate-y-1/2 text-gray-400 font-bold text-sm">Rp</span>
+                                    <input type="text" id="purchase_price" name="purchase_price" required
+                                        oninput="formatCurrency(this)"
+                                        class="w-full pl-14 pr-6 py-4 bg-gray-50 border-2 border-transparent rounded-2xl outline-none focus:border-brand-primary/20 focus:bg-white transition-all font-bold text-sm">
+                                </div>
+                            </div>
+
+                            <!-- Selling Price -->
+                            <div class="space-y-2">
+                                <label class="text-[10px] font-black text-gray-400 uppercase tracking-widest px-1">Harga Jual Marketplace (Rp)</label>
+                                <div class="relative">
+                                    <span class="absolute left-6 top-1/2 -translate-y-1/2 text-gray-400 font-bold text-sm">Rp</span>
+                                    <input type="text" id="selling_price" name="selling_price" required
+                                        oninput="formatCurrency(this)"
+                                        class="w-full pl-14 pr-6 py-4 bg-gray-50 border-2 border-transparent rounded-2xl outline-none focus:border-brand-primary/20 focus:bg-white transition-all font-bold text-sm">
+                                </div>
                             </div>
                         </div>
 
@@ -303,17 +361,45 @@ require_once 'views/admin/includes/sidebar.php';
     document.addEventListener('DOMContentLoaded', function() {
         const checkedType = document.querySelector('input[name="purchase_type"]:checked').value;
         togglePurchaseType(checkedType);
+        
+        // Reset payment type selection
+        document.querySelectorAll('input[name="payment_type"]').forEach(input => input.checked = false);
+        togglePaymentType('lunas');
     });
+
+    function togglePaymentType(type) {
+        const amountContainer = document.getElementById('amount_paid_container');
+        const amountInput = document.getElementById('amount_paid');
+        
+        if (type === 'dp') {
+            amountContainer.classList.remove('hidden');
+            amountInput.setAttribute('required', 'true');
+        } else {
+            amountContainer.classList.add('hidden');
+            amountInput.removeAttribute('required');
+            amountInput.value = '';
+        }
+    }
 
     function validatePricingForm(event) {
         const purchaseType = document.querySelector('input[name="purchase_type"]:checked').value;
         
+        const paymentTypeChecked = document.querySelector('input[name="payment_type"]:checked');
+        if (!paymentTypeChecked) {
+            showToast('Silakan pilih metode pembayaran pemasok terlebih dahulu!', 'error');
+            event.preventDefault();
+            return false;
+        }
+
+        let purchasePrice = 0;
+        let qty = 1;
+
         if (purchaseType === 'new') {
             const purchasePriceInput = document.getElementById('purchase_price');
             const sellingPriceInput = document.getElementById('selling_price');
 
-            const purchasePrice = parseFloat(purchasePriceInput.value.replace(/\D/g, ""));
-            const sellingPrice = parseFloat(sellingPriceInput.value.replace(/\D/g, ""));
+            purchasePrice = parseFloat(purchasePriceInput.value.replace(/\D/g, "")) || 0;
+            const sellingPrice = parseFloat(sellingPriceInput.value.replace(/\D/g, "")) || 0;
 
             if (sellingPrice < purchasePrice) {
                 showToast('Harga jual tidak boleh lebih kecil dari harga beli!', 'error');
@@ -324,6 +410,9 @@ require_once 'views/admin/includes/sidebar.php';
             // Set raw numeric values back to inputs before submission
             purchasePriceInput.value = purchasePrice;
             sellingPriceInput.value = sellingPrice;
+
+            const newQtyInput = document.querySelector('input[name="qty"]');
+            qty = parseInt(newQtyInput.value) || 1;
         } else {
             const existingSelect = document.getElementById('modal_livestock_id');
             if (existingSelect.value === "") {
@@ -331,6 +420,31 @@ require_once 'views/admin/includes/sidebar.php';
                 event.preventDefault();
                 return false;
             }
+            const selectedOption = existingSelect.options[existingSelect.selectedIndex];
+            purchasePrice = parseFloat(selectedOption.getAttribute('data-price')) || 0;
+
+            const existingQtyInput = document.querySelector('input[name="qty"]');
+            qty = parseInt(existingQtyInput.value) || 1;
+        }
+
+        if (paymentTypeChecked.value === 'dp') {
+            const amountInput = document.getElementById('amount_paid');
+            const amountPaid = parseFloat(amountInput.value.replace(/\D/g, "")) || 0;
+            const total = purchasePrice * qty;
+
+            if (amountPaid <= 0) {
+                showToast('Pembayaran awal (DP) harus diisi dan lebih besar dari 0!', 'error');
+                event.preventDefault();
+                return false;
+            }
+            if (amountPaid >= total) {
+                showToast('Pembayaran DP tidak boleh melebihi atau sama dengan total harga beli. Gunakan tipe Lunas.', 'error');
+                event.preventDefault();
+                return false;
+            }
+
+            // Set raw numeric value before submission
+            amountInput.value = amountPaid;
         }
         
         return true;

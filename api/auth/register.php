@@ -1,61 +1,41 @@
 <?php
-ob_start();
-session_start();
 require_once '../../config/database.php';
-require_once '../../models/User.php';
+require_once '../../helpers/AuthHelper.php';
+require_once '../../services/AuthService.php';
 
-function redirectWithError($msg, $redirect = '') {
-    $_SESSION['error'] = $msg;
-    $back = $redirect ? "/lautan-ternak-pantura/views/auth/login?action=register&redirect=" . urlencode($redirect) : "/lautan-ternak-pantura/views/auth/register";
-    header("Location: $back");
-    ob_end_flush();
+AuthHelper::start();
+
+if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+    header('Location: /lautan-ternak-pantura/auth/register');
     exit;
 }
 
-if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-    $name = trim($_POST['name'] ?? '');
-    $email = trim($_POST['email'] ?? '');
-    $password = $_POST['password'] ?? '';
-    $role = isset($_POST['role']) ? $_POST['role'] : 'customer';
-    $redirect = isset($_POST['redirect']) ? $_POST['redirect'] : '';
+$redirect = $_POST['redirect'] ?? '';
 
-    if (empty($name) || empty($email) || empty($password)) {
-        redirectWithError('Semua field wajib diisi.', $redirect);
-    }
-
-    if (!isset($conn)) {
-        redirectWithError('Koneksi database gagal.', $redirect);
-    }
-
-    $userModel = new User($conn);
-
-    // Cek email exist
-    if ($userModel->findByEmail($email)) {
-        redirectWithError('Email sudah terdaftar.', $redirect);
-    }
-
-    $userModel->name = $name;
-    $userModel->email = $email;
-    $userModel->password = password_hash($password, PASSWORD_BCRYPT);
-    $userModel->role = $role;
-
-    if ($userModel->create()) {
-        // Auto-login after registration
-        $userModel->findByEmail($email);
-        $_SESSION['user_id'] = $userModel->id;
-        $_SESSION['email'] = $userModel->email;
-        $_SESSION['name'] = $userModel->name;
-        $_SESSION['role'] = $userModel->role;
-
-        $location = $redirect ?: '/lautan-ternak-pantura/views/customer/dashboard';
-        header("Location: $location");
-        ob_end_flush();
-        exit;
-    }
-
-    redirectWithError('Registrasi gagal. Coba lagi.', $redirect);
+if (!AuthHelper::validateCsrf($_POST['csrf_token'] ?? '')) {
+    $_SESSION['auth_errors'] = ['csrf' => 'Sesi form kedaluwarsa. Silakan coba lagi.'];
+    $_SESSION['old_register'] = $_POST;
+    header('Location: /lautan-ternak-pantura/auth/register' . ($redirect ? '?redirect=' . urlencode($redirect) : ''));
+    exit;
 }
 
-header("Location: /lautan-ternak-pantura/views/auth/register");
-ob_end_flush();
+if (!isset($conn)) {
+    $_SESSION['auth_errors'] = ['database' => 'Koneksi database gagal.'];
+    $_SESSION['old_register'] = $_POST;
+    header('Location: /lautan-ternak-pantura/auth/register');
+    exit;
+}
+
+$service = new AuthService($conn);
+$result = $service->registerCustomer($_POST);
+
+if (!$result['success']) {
+    $_SESSION['auth_errors'] = $result['errors'];
+    $_SESSION['old_register'] = $_POST;
+    header('Location: /lautan-ternak-pantura/auth/register' . ($redirect ? '?redirect=' . urlencode($redirect) : ''));
+    exit;
+}
+
+$_SESSION['success'] = 'Registrasi berhasil. Selamat datang sebagai Sohibul Qurban.';
+header('Location: ' . ($redirect ?: '/lautan-ternak-pantura/customer/dashboard'));
 exit;

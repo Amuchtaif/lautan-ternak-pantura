@@ -1,6 +1,6 @@
 <?php
-session_start();
-session_destroy();
-header("Location: /lautan-ternak-pantura/index.php");
+require_once '../../helpers/AuthHelper.php';
+
+AuthHelper::logout();
+header('Location: /lautan-ternak-pantura/auth/login');
 exit;
-?>

@@ -24,14 +24,17 @@
                     peternak terpercaya di sepanjang jalur Pantura.
                 </p>
 
-                <div class="flex flex-col sm:flex-row justify-center lg:justify-start items-center gap-4">
-                    <a href="/lautan-ternak-pantura/marketplace"
-                        class="w-full sm:w-auto px-8 py-4 rounded-full bg-brand-primary text-white font-medium text-lg hover:bg-brand-dark hover:shadow-lg transition-all duration-300 transform hover:-translate-y-1 text-center">
-                        Lihat Katalog Hewan
-                    </a>
+                <div class="flex flex-col sm:flex-row justify-center lg:justify-start items-stretch sm:items-center gap-4">
                     <a href="/lautan-ternak-pantura/tabungan"
-                        class="w-full sm:w-auto px-8 py-4 rounded-full bg-white text-brand-primary border border-gray-200 font-medium text-lg hover:border-brand-primary hover:bg-brand-light/20 transition-all duration-300 text-center">
-                        Mulai Tabungan
+                        class="group relative w-full sm:w-auto px-8 py-4 bg-brand-primary text-white rounded-full font-bold text-lg hover:shadow-xl hover:-translate-y-1 transition-all duration-300 overflow-hidden flex items-center justify-center shadow-brand-primary/30 shadow-lg">
+                        <div class="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300 ease-in-out"></div>
+                        <span class="relative z-10 flex items-center gap-2">
+                            <i class="fas fa-piggy-bank text-xl"></i> Daftar Tabungan Qurban
+                        </span>
+                    </a>
+                    <a href="/lautan-ternak-pantura/marketplace"
+                        class="group w-full sm:w-auto px-8 py-4 bg-white border-2 border-brand-primary/10 text-brand-primary rounded-full font-bold text-lg hover:bg-brand-light hover:border-brand-primary/30 hover:-translate-y-1 transition-all duration-300 flex items-center justify-center gap-2 shadow-sm">
+                        <i class="fas fa-shopping-bag"></i> Lihat Katalog <i class="fas fa-arrow-right opacity-0 -ml-4 group-hover:opacity-100 group-hover:ml-0 transition-all duration-300 text-sm"></i>
                     </a>
                 </div>
             </div>
@@ -341,7 +344,7 @@
                         kemudahan ibadah yang berkah bersama LTP.
                     </p>
                     <div class="flex flex-col sm:flex-row gap-4">
-                        <a href="/lautan-ternak-pantura/views/auth/register"
+                        <a href="/lautan-ternak-pantura/auth/register"
                             class="px-8 py-4 bg-white text-brand-primary rounded-2xl font-bold text-lg hover:bg-gray-50 hover:-translate-y-1 transition-all shadow-lg text-center">
                             Daftar Sekarang
                         </a>

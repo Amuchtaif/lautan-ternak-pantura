@@ -74,7 +74,7 @@
 
                     <div class="flex flex-col sm:flex-row gap-4 mt-auto">
                         <?php if ($livestock['status'] === 'available' && $livestock['stock'] > 0): ?>
-                            <a href="/lautan-ternak-pantura/order/checkout/<?php echo $livestock['id']; ?>" class="flex-1 inline-flex justify-center items-center gap-2 bg-brand-primary text-white py-4 px-6 rounded-2xl hover:bg-brand-dark transition-all font-black text-sm uppercase tracking-widest shadow-xl shadow-brand-primary/20">
+                            <a href="/lautan-ternak-pantura/sales/checkout/<?php echo $livestock['id']; ?>" class="flex-1 inline-flex justify-center items-center gap-2 bg-brand-primary text-white py-4 px-6 rounded-2xl hover:bg-brand-dark transition-all font-black text-sm uppercase tracking-widest shadow-xl shadow-brand-primary/20">
                                 <i class="fas fa-shopping-bag"></i> Beli Langsung
                             </a>
                         <?php else: ?>
@@ -83,7 +83,7 @@
                             </button>
                         <?php endif; ?>
                         
-                        <a href="/lautan-ternak-pantura/tabungan?livestock_id=<?php echo $livestock['id']; ?>" class="flex-1 inline-flex justify-center items-center gap-2 bg-white text-brand-primary border-2 border-brand-primary py-4 px-6 rounded-2xl hover:bg-brand-light/20 transition-all font-black text-sm uppercase tracking-widest">
+                        <a href="/lautan-ternak-pantura/tabungan#form-registrasi" class="flex-1 inline-flex justify-center items-center gap-2 bg-white text-brand-primary border-2 border-brand-primary py-4 px-6 rounded-2xl hover:bg-brand-light/20 transition-all font-black text-sm uppercase tracking-widest">
                             <i class="fas fa-piggy-bank"></i> Program Tabungan
                         </a>
                     </div>

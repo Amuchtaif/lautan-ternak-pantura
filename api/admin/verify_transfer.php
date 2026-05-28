@@ -1,67 +1,68 @@
 <?php
 require_once '../../config/database.php';
-if (session_status() === PHP_SESSION_NONE) { session_start(); }
+require_once '../../models/SavingsPlan.php';
+require_once '../../models/SavingsTransaction.php';
+
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
 
 header('Content-Type: application/json');
 error_reporting(E_ALL);
 ini_set('display_errors', 0);
 
-if (!$conn) {
+if (!isset($conn)) {
     echo json_encode(['success' => false, 'message' => 'Koneksi database gagal.']);
-    exit();
+    exit;
 }
 
 if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'admin') {
     echo json_encode(['success' => false, 'message' => 'Akses ditolak.']);
-    exit();
+    exit;
 }
 
-// Handle both FormData and JSON input
 if (empty($_POST)) {
-    $json = file_get_contents('php://input');
-    $data = json_decode($json, true);
-    if ($data) { $_POST = $data; }
+    $data = json_decode(file_get_contents('php://input'), true);
+    if (is_array($data)) {
+        $_POST = $data;
+    }
 }
 
-$id = $_POST['id'] ?? null;
+$id = filter_var($_POST['id'] ?? null, FILTER_VALIDATE_INT);
 $status = $_POST['status'] ?? null;
+$notes = trim($_POST['notes'] ?? '');
 
-if (!$id || !$status) {
-    echo json_encode(['success' => false, 'message' => 'Data tidak lengkap']);
-    exit();
-}
-
-if (!in_array($status, ['verified', 'rejected'])) {
-    echo json_encode(['success' => false, 'message' => 'Status tidak valid']);
-    exit();
+if (!$id || !in_array($status, ['verified', 'rejected'], true)) {
+    echo json_encode(['success' => false, 'message' => 'Data verifikasi tidak valid.']);
+    exit;
 }
 
 try {
     $conn->beginTransaction();
 
-    $stmt = $conn->prepare("UPDATE savings_transactions SET status = ?, verified_by = ? WHERE id = ?");
-    $stmt->execute([$status, $_SESSION['user_id'], $id]);
+    $transactionModel = new SavingsTransaction($conn);
+    $planModel = new SavingsPlan($conn);
 
-    // Refactor: If verified, automatically check and complete the savings plan if target is met
+    $transaction = $transactionModel->getById($id);
+    if (!$transaction || $transaction['transaction_status'] !== 'pending') {
+        throw new RuntimeException('Transaksi tidak ditemukan atau sudah diproses.');
+    }
+
+    $transactionModel->verify($id, $status, (int)$_SESSION['user_id'], $notes ?: null);
+
     if ($status === 'verified') {
-        $stmtPlan = $conn->prepare("SELECT plan_id FROM savings_transactions WHERE id = ?");
-        $stmtPlan->execute([$id]);
-        $planId = $stmtPlan->fetchColumn();
-
-        if ($planId) {
-            require_once '../../models/Savings.php';
-            $savingsModel = new Savings($conn);
-            $savingsModel->checkAndCompletePlan($planId);
-        }
+        $planModel->applyVerifiedDeposit((int)$transaction['savings_plan_id'], (float)$transaction['amount']);
     }
 
     $conn->commit();
 
-    $msg = $status === 'verified' ? 'Transaksi berhasil diverifikasi' : 'Transaksi telah ditolak';
-    echo json_encode(['success' => true, 'message' => $msg]);
-} catch (PDOException $e) {
-    if ($conn->inTransaction()) {
+    echo json_encode([
+        'success' => true,
+        'message' => $status === 'verified' ? 'Setoran tabungan berhasil diverifikasi.' : 'Setoran tabungan ditolak.'
+    ]);
+} catch (Throwable $e) {
+    if (isset($conn) && $conn->inTransaction()) {
         $conn->rollBack();
     }
-    echo json_encode(['success' => false, 'message' => 'Database error: ' . $e->getMessage()]);
+    echo json_encode(['success' => false, 'message' => $e->getMessage()]);
 }

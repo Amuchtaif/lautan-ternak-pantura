@@ -19,27 +19,24 @@ it('dapat membuat rencana tabungan qurban baru', function() use ($db) {
     $livestock = new Livestock($db);
     $livestock->create([
         'code' => 'LTP-SAPI-SAVE',
+        'peternak_name' => 'Pak Joko Breeder',
         'name' => 'Sapi Bali',
-        'category' => 'qurban',
         'breed' => 'Bali',
         'age' => 20,
         'weight' => 380.00,
         'gender' => 'male',
-        'price' => 20000000.00,
+        'selling_price' => 20000000.00,
         'purchase_price' => 16000000.00,
         'stock' => 1,
         'status' => 'available'
     ]);
 
-    $stmtL = $db->query("SELECT id FROM livestock WHERE code = 'LTP-SAPI-SAVE'");
+    $stmtL = $db->query("SELECT id FROM livestock WHERE livestock_code = 'LTP-SAPI-SAVE'");
     $livestockId = $stmtL->fetchColumn();
 
-    // Act - Create Savings Plan
-    $savings = new Savings($db);
-    
     // We insert directly to verify initial table creation state
-    $stmt = $db->prepare("INSERT INTO savings_plans (customer_id, livestock_id, target_amount, monthly_installment, status) VALUES (?, ?, ?, ?, 'active')");
-    $result = $stmt->execute([$customerId, $livestockId, 20000000.00, 2000000.00]);
+    $stmt = $db->prepare("INSERT INTO savings_plans (plan_code, customer_id, livestock_target, target_amount, current_amount, monthly_target, duration_month, start_date, target_date, status) VALUES (?, ?, ?, ?, 0, ?, ?, DATE('now'), DATE('now', '+10 months'), 'active')");
+    $result = $stmt->execute(['TQ-TEST-0001', $customerId, 'Sapi Bali', 20000000.00, 2000000.00, 10]);
 
     if (!$result) {
         throw new Exception("Gagal menyimpan rencana tabungan baru");
@@ -64,7 +61,7 @@ it('dapat menghitung total tabungan yang sudah diverifikasi (verified)', functio
     $planId = $stmtPlan->fetchColumn();
 
     // Insert multiple transactions (verified, pending, rejected)
-    $stmtTx = $db->prepare("INSERT INTO savings_transactions (plan_id, amount, proof_of_payment, status) VALUES (?, ?, ?, ?)");
+    $stmtTx = $db->prepare("INSERT INTO savings_transactions (savings_plan_id, amount, payment_method, payment_proof, transaction_status) VALUES (?, ?, 'transfer_bank', ?, ?)");
     $stmtTx->execute([$planId, 5000000.00, 'proof1.jpg', 'verified']);
     $stmtTx->execute([$planId, 10000000.00, 'proof2.jpg', 'verified']);
     $stmtTx->execute([$planId, 2000000.00, 'proof3.jpg', 'pending']);  // Pending should NOT be summed
@@ -88,7 +85,7 @@ it('secara otomatis mengubah status tabungan menjadi completed jika target nomin
     $planId = $stmtPlan->fetchColumn();
 
     // Insert another verified transaction of 5M (Bringing total verified to 20M, meeting the 20M target!)
-    $stmtTx = $db->prepare("INSERT INTO savings_transactions (plan_id, amount, proof_of_payment, status) VALUES (?, ?, ?, 'verified')");
+    $stmtTx = $db->prepare("INSERT INTO savings_transactions (savings_plan_id, amount, payment_method, payment_proof, transaction_status) VALUES (?, ?, 'transfer_bank', ?, 'verified')");
     $stmtTx->execute([$planId, 5000000.00, 'proof5.jpg']);
 
     // Act

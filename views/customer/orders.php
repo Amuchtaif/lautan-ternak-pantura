@@ -77,7 +77,7 @@ require_once __DIR__ . '/../../includes/header.php';
                                 <p class="text-[10px] text-gray-400 font-black uppercase tracking-widest">Total Bayar</p>
                                 <p class="text-lg font-black text-brand-primary mt-0.5">Rp <?php echo number_format($ord['total_price'], 0, ',', '.'); ?></p>
                             </div>
-                            <a href="/lautan-ternak-pantura/order/order_detail/<?php echo $ord['id']; ?>" class="bg-gray-50 hover:bg-brand-primary hover:text-white text-gray-700 px-6 py-3.5 rounded-2xl font-black text-xs uppercase tracking-widest transition-all">
+                            <a href="/lautan-ternak-pantura/sales/order_detail/<?php echo $ord['id']; ?>" class="bg-gray-50 hover:bg-brand-primary hover:text-white text-gray-700 px-6 py-3.5 rounded-2xl font-black text-xs uppercase tracking-widest transition-all">
                                 Detail Transaksi
                             </a>
                         </div>

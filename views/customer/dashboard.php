@@ -1,11 +1,14 @@
 <?php 
 if (session_status() === PHP_SESSION_NONE) { session_start(); }
-require_once '../../config/database.php';
+require_once __DIR__ . '/../../config/database.php';
 
 // Check if user is logged in and is a customer
 if(!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'customer') {
-    header("Location: /lautan-ternak-pantura/views/auth/login");
+    header("Location: /lautan-ternak-pantura/auth/login");
     exit;
+}
+if (empty($_SESSION['csrf_token'])) {
+    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
 }
 
 $customerId = $_SESSION['user_id'];
@@ -15,13 +18,33 @@ $sohibulQurban = null;
 $totalSaved = 0;
 $transactions = [];
 
+function customerSavingsColumnExists($conn, $table, $column) {
+    try {
+        $stmt = $conn->prepare("SHOW COLUMNS FROM {$table} LIKE ?");
+        $stmt->execute([$column]);
+        return (bool)$stmt->fetch(PDO::FETCH_ASSOC);
+    } catch (PDOException $e) {
+        return false;
+    }
+}
+
 if (isset($conn)) {
     try {
+        $usesNewSavingsPlans = customerSavingsColumnExists($conn, 'savings_plans', 'plan_code');
+        $usesNewSavingsTransactions = customerSavingsColumnExists($conn, 'savings_transactions', 'savings_plan_id');
+        $txPlanColumn = $usesNewSavingsTransactions ? 'savings_plan_id' : 'plan_id';
+        $txStatusColumn = $usesNewSavingsTransactions ? 'transaction_status' : 'status';
+        $monthlyColumn = customerSavingsColumnExists($conn, 'savings_plans', 'monthly_target') ? 'monthly_target' : 'monthly_installment';
+        $currentAmountExpr = customerSavingsColumnExists($conn, 'savings_plans', 'current_amount')
+            ? 'sp.current_amount'
+            : "(SELECT COALESCE(SUM(st.amount), 0) FROM savings_transactions st WHERE st.{$txPlanColumn} = sp.id AND st.{$txStatusColumn} = 'verified')";
+        $livestockTargetExpr = customerSavingsColumnExists($conn, 'savings_plans', 'livestock_target') ? 'sp.livestock_target' : "'Hewan Qurban'";
+
         // 1. Fetch Active Savings Plan
         $stmt = $conn->prepare("
-            SELECT sp.*, l.type as animal_type, l.image_url as animal_image, l.price as animal_price
+            SELECT sp.*, {$livestockTargetExpr} as animal_type, {$currentAmountExpr} AS normalized_current_amount,
+                sp.{$monthlyColumn} AS normalized_monthly_target, NULL as animal_image, sp.target_amount as animal_price
             FROM savings_plans sp
-            LEFT JOIN livestock l ON sp.livestock_id = l.id
             WHERE sp.customer_id = ? AND sp.status = 'active'
             ORDER BY sp.created_at DESC LIMIT 1
         ");
@@ -30,24 +53,23 @@ if (isset($conn)) {
 
         // Fetch Sohibul Qurban data for the active plan
         if ($activePlan) {
-            $stmt = $conn->prepare("SELECT * FROM sohibul_qurban WHERE plan_id = ? LIMIT 1");
-            $stmt->execute([$activePlan['id']]);
-            $sohibulQurban = $stmt->fetch(PDO::FETCH_ASSOC);
+            $sohibulQurban = ['name' => $_SESSION['full_name'] ?? $_SESSION['name'] ?? '', 'relationship' => 'self', 'phone' => '', 'address' => $activePlan['notes'] ?? ''];
         }
 
         // 2. Total Saved
         if ($activePlan) {
-            $stmt = $conn->prepare("SELECT SUM(amount) FROM savings_transactions WHERE plan_id = ? AND status = 'verified'");
+            $activePlan['current_amount'] = $activePlan['normalized_current_amount'] ?? ($activePlan['current_amount'] ?? 0);
+            $activePlan['monthly_target'] = $activePlan['normalized_monthly_target'] ?? ($activePlan['monthly_target'] ?? ($activePlan['monthly_installment'] ?? 0));
+            $stmt = $conn->prepare("SELECT SUM(amount) FROM savings_transactions WHERE {$txPlanColumn} = ? AND {$txStatusColumn} = 'verified'");
             $stmt->execute([$activePlan['id']]);
             $totalSaved = $stmt->fetchColumn() ?: 0;
         }
 
         // 3. Recent Transactions
         $stmt = $conn->prepare("
-            SELECT st.*, sp.target_amount, l.type as animal_type
+            SELECT st.*, st.{$txStatusColumn} AS status, sp.target_amount, {$livestockTargetExpr} as animal_type
             FROM savings_transactions st
-            JOIN savings_plans sp ON st.plan_id = sp.id
-            LEFT JOIN livestock l ON sp.livestock_id = l.id
+            JOIN savings_plans sp ON st.{$txPlanColumn} = sp.id
             WHERE sp.customer_id = ?
             ORDER BY st.created_at DESC LIMIT 5
         ");
@@ -60,15 +82,28 @@ if (isset($conn)) {
 }
 
 require_once __DIR__ . '/../../includes/header.php'; 
+$onboardingMessage = $_SESSION['success'] ?? '';
+unset($_SESSION['success']);
 ?>
 
 <div class="bg-gray-50 min-h-screen py-8">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <?php if ($onboardingMessage): ?>
+            <div class="mb-6 rounded-lg border border-green-100 bg-green-50 px-6 py-5 text-green-800 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                <div>
+                    <p class="font-black"><?php echo htmlspecialchars($onboardingMessage); ?></p>
+                    <p class="text-sm font-bold text-green-700/80 mt-1">Akun Anda aktif. Mulai buat rencana tabungan atau pilih hewan qurban dari katalog.</p>
+                </div>
+                <a href="/lautan-ternak-pantura/savings/create" class="inline-flex items-center justify-center px-4 py-2 bg-green-600 text-white rounded-lg font-black text-sm">
+                    Mulai Rencana
+                </a>
+            </div>
+        <?php endif; ?>
         
         <div class="mb-8 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
             <div>
                 <h1 class="text-3xl font-black text-gray-900 tracking-tight">Dashboard <span class="text-brand-primary">Tabungan</span></h1>
-                <p class="mt-1 text-sm text-gray-400 font-bold uppercase tracking-widest">Selamat datang kembali, <?php echo $_SESSION['name']; ?>!</p>
+                <p class="mt-1 text-sm text-gray-400 font-bold uppercase tracking-widest">Selamat datang kembali, <?php echo htmlspecialchars($_SESSION['full_name'] ?? $_SESSION['name'] ?? 'Sohibul Qurban'); ?>!</p>
             </div>
             <div class="flex items-center gap-3">
                 <a href="/lautan-ternak-pantura/views/customer/profile" class="bg-white text-gray-700 px-6 py-3 rounded-2xl shadow-sm border border-gray-100 hover:bg-gray-50 transition-all text-sm font-black flex items-center gap-2">
@@ -108,7 +143,7 @@ require_once __DIR__ . '/../../includes/header.php';
                 </div>
                 <div class="ml-6">
                     <p class="text-[10px] text-gray-400 font-black uppercase tracking-widest mb-1">Cicilan / Bulan</p>
-                    <p class="text-2xl font-black text-gray-900">Rp <?php echo $activePlan ? number_format($activePlan['monthly_installment'], 0, ',', '.') : '0'; ?></p>
+                    <p class="text-2xl font-black text-gray-900">Rp <?php echo $activePlan ? number_format($activePlan['monthly_target'], 0, ',', '.') : '0'; ?></p>
                 </div>
             </div>
         </div>
@@ -180,7 +215,7 @@ require_once __DIR__ . '/../../includes/header.php';
                             </div>
                         </div>
 
-                        <button onclick="openPaymentModal(<?php echo $activePlan['id']; ?>, <?php echo (int)$activePlan['monthly_installment']; ?>)" class="w-full bg-brand-primary text-white py-5 rounded-2xl font-black text-sm shadow-xl shadow-brand-primary/20 hover:bg-brand-dark transition-all flex items-center justify-center gap-3">
+                        <button onclick="openPaymentModal(<?php echo $activePlan['id']; ?>, <?php echo (int)$activePlan['monthly_target']; ?>)" class="w-full bg-brand-primary text-white py-5 rounded-2xl font-black text-sm shadow-xl shadow-brand-primary/20 hover:bg-brand-dark transition-all flex items-center justify-center gap-3">
                             <i class="fas fa-paper-plane"></i> Setor Tabungan (Bukti Transfer)
                         </button>
                     <?php else: ?>
@@ -234,56 +269,62 @@ require_once __DIR__ . '/../../includes/header.php';
 </div>
 
 <!-- Payment Modal -->
-<div id="payment-modal" class="fixed inset-0 bg-black/60 backdrop-blur-md z-[1000] hidden items-center justify-center p-4 transition-all duration-300 opacity-0">
-    <div class="bg-white rounded-3xl w-full max-w-lg overflow-hidden shadow-2xl transition-all duration-300 scale-90 opacity-0" id="modal-content">
-        <div class="px-10 py-8 border-b border-gray-50 flex justify-between items-center bg-gray-50/50">
+<div id="payment-modal" class="fixed inset-0 z-[1000] hidden overflow-y-auto bg-black/60 backdrop-blur-md p-4 items-start sm:items-center justify-center">
+    <div class="mx-auto mt-8 mb-8 w-full max-w-lg overflow-hidden rounded-3xl bg-white shadow-2xl transition-all duration-300 scale-90 opacity-0" id="modal-content" style="max-height:calc(100vh - 3rem);">
+        <div class="flex items-center justify-between border-b border-gray-100 bg-gray-50/50 px-8 py-6">
             <h3 class="text-xl font-black text-gray-900 tracking-tight">Setor Tabungan</h3>
-            <button onclick="closePaymentModal()" class="w-10 h-10 rounded-full hover:bg-gray-100 flex items-center justify-center text-gray-400 hover:text-gray-600 transition-all"><i class="fas fa-xmark text-xl"></i></button>
-        </div>
-        <form id="payment-form" action="/lautan-ternak-pantura/api/savings/deposit" method="POST" enctype="multipart/form-data" class="p-10 space-y-8">
-            <input type="hidden" name="plan_id" id="modal-plan-id">
-            
-            <div class="bg-blue-50/50 p-6 rounded-2xl border border-blue-100">
-                <p class="text-[10px] text-blue-400 font-black uppercase tracking-widest mb-3">Tujuan Transfer</p>
-                <div class="flex items-center gap-4">
-                    <img src="https://upload.wikimedia.org/wikipedia/commons/5/5c/Bank_Central_Asia.svg" class="h-6 w-auto">
-                    <div>
-                        <p class="text-sm font-black text-gray-900">8610 9928 11</p>
-                        <p class="text-[10px] font-bold text-gray-500 uppercase tracking-widest">A/N LAUTAN TERNAK PANTURA</p>
-                    </div>
-                </div>
-            </div>
-
-            <div class="space-y-2">
-                <label class="text-[10px] font-black text-gray-400 uppercase tracking-widest px-1">Nominal Setoran</label>
-                <div class="relative">
-                    <span class="absolute left-6 top-1/2 -translate-y-1/2 text-gray-400 font-black text-sm">Rp</span>
-                    <input type="number" name="amount" id="modal-amount" required class="w-full pl-14 pr-6 py-4 bg-gray-50 border-2 border-transparent rounded-2xl outline-none focus:border-brand-primary/20 focus:bg-white transition-all font-black text-lg">
-                </div>
-            </div>
-
-            <div class="space-y-2">
-                <label class="text-[10px] font-black text-gray-400 uppercase tracking-widest px-1">Bukti Transfer (Gambar)</label>
-                <div id="drop-zone" class="relative group cursor-pointer">
-                    <input type="file" name="proof" id="proof-input" accept="image/*" required class="hidden">
-                    <div id="upload-ui" class="w-full py-10 bg-gray-50 border-2 border-dashed border-gray-200 rounded-3xl flex flex-col items-center justify-center gap-3 group-hover:border-brand-primary/30 group-hover:bg-brand-primary/5 transition-all">
-                        <div class="w-12 h-12 rounded-2xl bg-white shadow-sm flex items-center justify-center text-gray-400 group-hover:text-brand-primary transition-all">
-                            <i class="fas fa-cloud-upload-alt text-xl"></i>
-                        </div>
-                        <p class="text-xs font-bold text-gray-400 group-hover:text-brand-primary transition-all" id="filename-text">Klik atau tarik gambar ke sini</p>
-                    </div>
-                    <div id="preview-container" class="hidden absolute inset-0 rounded-3xl overflow-hidden bg-white">
-                        <img id="image-preview" class="w-full h-full object-cover">
-                        <button type="button" onclick="resetImage()" class="absolute top-4 right-4 w-10 h-10 rounded-xl bg-black/40 backdrop-blur-md text-white flex items-center justify-center hover:bg-black/60 transition-all">
-                            <i class="fas fa-times"></i>
-                        </button>
-                    </div>
-                </div>
-            </div>
-
-            <button type="submit" class="w-full bg-brand-primary text-white py-5 rounded-2xl font-black text-sm shadow-xl shadow-brand-primary/20 hover:bg-brand-dark transition-all flex items-center justify-center gap-3">
-                <i class="fas fa-check-circle"></i> Kirim Konfirmasi Pembayaran
+            <button type="button" onclick="closePaymentModal()" class="inline-flex h-10 w-10 items-center justify-center rounded-full text-gray-400 transition hover:bg-gray-100 hover:text-gray-600">
+                <i class="fas fa-xmark text-xl"></i>
             </button>
+        </div>
+        <form id="payment-form" action="/lautan-ternak-pantura/api/savings/deposit" method="POST" enctype="multipart/form-data" class="flex min-h-0 flex-col">
+            <div class="min-h-0 overflow-y-auto p-8 space-y-8">
+                <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token'] ?? ''); ?>">
+                <input type="hidden" name="savings_plan_id" id="modal-plan-id">
+                
+                <div class="bg-blue-50/50 p-6 rounded-2xl border border-blue-100">
+                    <p class="text-[10px] text-blue-400 font-black uppercase tracking-widest mb-3">Tujuan Transfer</p>
+                    <div class="flex items-center gap-4">
+                        <img src="https://upload.wikimedia.org/wikipedia/commons/5/5c/Bank_Central_Asia.svg" class="h-6 w-auto">
+                        <div>
+                            <p class="text-sm font-black text-gray-900">8610 9928 11</p>
+                            <p class="text-[10px] font-bold text-gray-500 uppercase tracking-widest">A/N LAUTAN TERNAK PANTURA</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="space-y-2">
+                    <label class="text-[10px] font-black text-gray-400 uppercase tracking-widest px-1">Nominal Setoran</label>
+                    <div class="relative">
+                        <span class="absolute left-6 top-1/2 -translate-y-1/2 text-gray-400 font-black text-sm">Rp</span>
+                        <input type="number" name="amount" id="modal-amount" required class="w-full rounded-2xl border-2 border-transparent bg-gray-50 py-4 pl-14 pr-6 text-lg font-black outline-none transition-all focus:border-brand-primary/20 focus:bg-white">
+                    </div>
+                </div>
+
+                <div class="space-y-2">
+                    <label class="text-[10px] font-black text-gray-400 uppercase tracking-widest px-1">Bukti Transfer (JPG/PNG/WEBP, Maks 2MB)</label>
+                    <div id="drop-zone" class="relative group cursor-pointer">
+                        <input type="file" name="payment_proof" id="proof-input" accept="image/jpeg,image/png,image/webp" required class="hidden">
+                        <div id="upload-ui" class="w-full rounded-3xl border-2 border-dashed border-gray-200 bg-gray-50 py-10 px-4 text-center transition group-hover:border-brand-primary/30 group-hover:bg-brand-primary/5">
+                            <div class="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-white shadow-sm text-gray-400 transition group-hover:text-brand-primary">
+                                <i class="fas fa-cloud-upload-alt text-xl"></i>
+                            </div>
+                            <p class="text-xs font-bold text-gray-400 group-hover:text-brand-primary transition-all" id="filename-text">Klik atau tarik gambar ke sini</p>
+                        </div>
+                        <div id="preview-container" class="hidden absolute inset-0 overflow-hidden rounded-3xl bg-white">
+                            <img id="image-preview" class="h-full w-full object-contain">
+                            <button type="button" onclick="resetImage()" class="absolute right-4 top-4 inline-flex h-10 w-10 items-center justify-center rounded-xl bg-black/40 text-white transition hover:bg-black/60">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="sticky bottom-0 left-0 z-10 border-t border-gray-100 bg-white px-8 py-5">
+                <button type="submit" class="w-full rounded-2xl bg-brand-primary py-5 text-sm font-black text-white shadow-xl shadow-brand-primary/20 transition hover:bg-brand-dark">
+                    <i class="fas fa-check-circle mr-2"></i> Kirim Konfirmasi Pembayaran
+                </button>
+            </div>
         </form>
     </div>
 </div>
@@ -296,6 +337,7 @@ require_once __DIR__ . '/../../includes/header.php';
         const overlay = document.getElementById('payment-modal');
         const content = document.getElementById('modal-content');
         
+        document.body.style.overflow = 'hidden';
         overlay.classList.remove('hidden');
         overlay.classList.add('flex');
         setTimeout(() => {
@@ -308,6 +350,7 @@ require_once __DIR__ . '/../../includes/header.php';
         const overlay = document.getElementById('payment-modal');
         const content = document.getElementById('modal-content');
         
+        document.body.style.overflow = '';
         overlay.classList.remove('opacity-100');
         content.classList.add('scale-90', 'opacity-0');
         setTimeout(() => {

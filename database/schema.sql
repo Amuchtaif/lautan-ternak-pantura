@@ -1,63 +1,93 @@
 CREATE DATABASE IF NOT EXISTS lautan_ternak_pantura;
 USE lautan_ternak_pantura;
 
+-- Disable foreign key checks for clean migration
+SET FOREIGN_KEY_CHECKS = 0;
+
+DROP TABLE IF EXISTS purchase_payments;
+DROP TABLE IF EXISTS sale_payments;
+DROP TABLE IF EXISTS sales;
+DROP TABLE IF EXISTS purchases;
+DROP TABLE IF EXISTS payments;
+DROP TABLE IF EXISTS orders;
+DROP TABLE IF EXISTS sohibul_qurban;
+DROP TABLE IF EXISTS savings_transactions;
+DROP TABLE IF EXISTS savings_plans;
+DROP TABLE IF EXISTS livestock;
+DROP TABLE IF EXISTS users;
+
 CREATE TABLE users (
     id INT AUTO_INCREMENT PRIMARY KEY,
+    full_name VARCHAR(150) NOT NULL,
     name VARCHAR(100) NOT NULL,
+    username VARCHAR(50) NOT NULL UNIQUE,
     email VARCHAR(100) NOT NULL UNIQUE,
     password VARCHAR(255) NOT NULL,
+    gender ENUM('male', 'female') NULL,
     role ENUM('admin', 'customer', 'breeder') DEFAULT 'customer',
+    profile_photo VARCHAR(255) DEFAULT NULL,
+    status ENUM('active', 'inactive') DEFAULT 'active',
+    last_login TIMESTAMP NULL DEFAULT NULL,
     phone VARCHAR(20) DEFAULT '',
     address TEXT,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    city VARCHAR(100) DEFAULT '',
+    province VARCHAR(100) DEFAULT '',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
 
 CREATE TABLE livestock (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    breeder_id INT NOT NULL,
-    type ENUM('kambing', 'sapi') NOT NULL,
-    category ENUM('qurban', 'aqiqah') NOT NULL,
-    weight DECIMAL(5,2) NOT NULL, -- in kg
+    livestock_code VARCHAR(50) UNIQUE NOT NULL,
+    peternak_name VARCHAR(150) NOT NULL,
+    breed VARCHAR(100) NOT NULL,
+    gender ENUM('male', 'female') NOT NULL,
     age INT NOT NULL, -- in months
-    health_condition TEXT,
-    price DECIMAL(15,2) NOT NULL,
-    image_url VARCHAR(255),
-    status ENUM('available', 'booked', 'sold') DEFAULT 'available',
+    weight DECIMAL(5,2) NOT NULL, -- in kg
+    purchase_price DECIMAL(15,2) NOT NULL,
+    selling_price DECIMAL(15,2) NOT NULL,
+    stock INT NOT NULL DEFAULT 0,
+    status ENUM('available', 'reserved', 'sold', 'inactive') DEFAULT 'available',
+    image VARCHAR(255) DEFAULT NULL,
+    description TEXT DEFAULT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (breeder_id) REFERENCES users(id) ON DELETE CASCADE
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
 
 CREATE TABLE savings_plans (
     id INT AUTO_INCREMENT PRIMARY KEY,
+    plan_code VARCHAR(50) NOT NULL UNIQUE,
     customer_id INT NOT NULL,
+    livestock_id INT NULL,
+    target_type ENUM('livestock', 'manual') DEFAULT 'livestock',
+    livestock_target VARCHAR(150) NOT NULL,
     target_amount DECIMAL(15,2) NOT NULL,
-    monthly_installment DECIMAL(15,2) NOT NULL,
-    status ENUM('active', 'completed', 'cancelled') DEFAULT 'active',
+    current_amount DECIMAL(15,2) NOT NULL DEFAULT 0,
+    monthly_target DECIMAL(15,2) NOT NULL,
+    duration_month INT NOT NULL,
+    start_date DATE NOT NULL,
+    target_date DATE NOT NULL,
+    status ENUM('active', 'completed', 'overdue', 'cancelled') DEFAULT 'active',
+    notes TEXT DEFAULT NULL,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (customer_id) REFERENCES users(id) ON DELETE CASCADE
+    FOREIGN KEY (customer_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (livestock_id) REFERENCES livestock(id) ON DELETE SET NULL
 );
 
 CREATE TABLE savings_transactions (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    plan_id INT NOT NULL,
+    savings_plan_id INT NOT NULL,
     amount DECIMAL(15,2) NOT NULL,
-    proof_of_payment VARCHAR(255) NOT NULL,
-    status ENUM('pending', 'verified', 'rejected') DEFAULT 'pending',
+    payment_method VARCHAR(50) NOT NULL,
+    payment_proof VARCHAR(255) NOT NULL,
+    transaction_status ENUM('pending', 'verified', 'rejected') DEFAULT 'pending',
     verified_by INT,
+    verified_at TIMESTAMP NULL DEFAULT NULL,
+    notes TEXT DEFAULT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (plan_id) REFERENCES savings_plans(id) ON DELETE CASCADE,
+    FOREIGN KEY (savings_plan_id) REFERENCES savings_plans(id) ON DELETE CASCADE,
     FOREIGN KEY (verified_by) REFERENCES users(id) ON DELETE SET NULL
-);
-
-CREATE TABLE orders (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    customer_id INT NOT NULL,
-    livestock_id INT NOT NULL,
-    total_price DECIMAL(15,2) NOT NULL,
-    status ENUM('pending', 'paid', 'delivered', 'cancelled') DEFAULT 'pending',
-    order_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (customer_id) REFERENCES users(id) ON DELETE CASCADE,
-    FOREIGN KEY (livestock_id) REFERENCES livestock(id) ON DELETE CASCADE
 );
 
 CREATE TABLE sohibul_qurban (
@@ -71,14 +101,74 @@ CREATE TABLE sohibul_qurban (
     FOREIGN KEY (plan_id) REFERENCES savings_plans(id) ON DELETE CASCADE
 );
 
-CREATE TABLE payments (
+CREATE TABLE purchases (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    order_id INT NOT NULL,
-    amount DECIMAL(15,2) NOT NULL,
-    proof_of_payment VARCHAR(255) NOT NULL,
-    status ENUM('pending', 'verified', 'rejected') DEFAULT 'pending',
-    verified_by INT,
+    purchase_code VARCHAR(50) UNIQUE NOT NULL,
+    livestock_id INT NOT NULL,
+    peternak_name VARCHAR(150) NOT NULL,
+    qty INT NOT NULL,
+    purchase_price DECIMAL(15,2) NOT NULL,
+    total_purchase DECIMAL(15,2) NOT NULL,
+    amount_paid DECIMAL(15,2) NOT NULL DEFAULT 0,
+    notes TEXT DEFAULT NULL,
+    payment_type ENUM('dp', 'lunas') DEFAULT 'lunas',
+    purchased_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    created_by INT NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE,
-    FOREIGN KEY (verified_by) REFERENCES users(id) ON DELETE SET NULL
+    FOREIGN KEY (livestock_id) REFERENCES livestock(id) ON DELETE CASCADE,
+    FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE CASCADE
 );
+
+CREATE TABLE sales (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    invoice_code VARCHAR(50) UNIQUE NOT NULL,
+    customer_name VARCHAR(150) NOT NULL,
+    customer_phone VARCHAR(20) DEFAULT '',
+    livestock_id INT NOT NULL,
+    livestock_name VARCHAR(150) NOT NULL,
+    peternak_name VARCHAR(150) NOT NULL,
+    qty INT NOT NULL,
+    selling_price_snapshot DECIMAL(15,2) NOT NULL,
+    total_price DECIMAL(15,2) NOT NULL,
+    payment_type ENUM('dp', 'lunas') NOT NULL,
+    payment_status ENUM('unpaid', 'partial', 'paid') DEFAULT 'unpaid',
+    sale_status ENUM('pending', 'processing', 'completed', 'cancelled') DEFAULT 'pending',
+    notes TEXT DEFAULT NULL,
+    payment_method VARCHAR(50) DEFAULT NULL,
+    payment_proof VARCHAR(255) DEFAULT NULL,
+    created_by INT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (livestock_id) REFERENCES livestock(id) ON DELETE CASCADE,
+    FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE CASCADE
+);
+
+CREATE TABLE sale_payments (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    sale_id INT NOT NULL,
+    payment_code VARCHAR(50) UNIQUE NOT NULL,
+    payment_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    payment_method VARCHAR(50) NOT NULL,
+    payment_amount DECIMAL(15,2) NOT NULL,
+    payment_note TEXT DEFAULT NULL,
+    payment_proof VARCHAR(255) DEFAULT NULL,
+    payment_status ENUM('pending', 'verified', 'rejected') DEFAULT 'pending',
+    created_by INT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (sale_id) REFERENCES sales(id) ON DELETE CASCADE,
+    FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE CASCADE
+);
+
+CREATE TABLE purchase_payments (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    purchase_id INT NOT NULL,
+    payment_code VARCHAR(50) UNIQUE NOT NULL,
+    payment_amount DECIMAL(15,2) NOT NULL,
+    payment_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    notes TEXT DEFAULT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (purchase_id) REFERENCES purchases(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- Re-enable foreign key checks
+SET FOREIGN_KEY_CHECKS = 1;

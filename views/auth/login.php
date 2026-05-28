@@ -2,7 +2,25 @@
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
+require_once __DIR__ . '/../../helpers/AuthHelper.php';
+$csrfToken = AuthHelper::csrfToken();
 $redirectUrl = isset($_GET['redirect']) ? $_GET['redirect'] : '';
+$registerErrors = $_SESSION['auth_errors'] ?? [];
+$oldRegister = $_SESSION['old_register'] ?? [];
+unset($_SESSION['auth_errors'], $_SESSION['old_register']);
+
+function authOld($key, $default = '') {
+    global $oldRegister;
+    return htmlspecialchars($oldRegister[$key] ?? $default, ENT_QUOTES, 'UTF-8');
+}
+
+function authError($key) {
+    global $registerErrors;
+    if (empty($registerErrors[$key])) {
+        return '';
+    }
+    return '<p class="mt-1.5 text-[10px] font-black text-red-500 uppercase tracking-wider">' . htmlspecialchars($registerErrors[$key], ENT_QUOTES, 'UTF-8') . '</p>';
+}
 ?>
 <!DOCTYPE html>
 <html lang="id">
@@ -127,7 +145,7 @@ $redirectUrl = isset($_GET['redirect']) ? $_GET['redirect'] : '';
 
         <!-- Form Section -->
         <div id="form-side"
-            class="w-full md:w-1/2 flex flex-col justify-center px-8 sm:px-12 lg:px-14 py-12 md:py-8 bg-white z-20 form-transition">
+            class="w-full md:w-1/2 flex flex-col justify-center px-8 sm:px-12 lg:px-14 py-12 md:py-8 bg-white z-20 form-transition max-h-screen overflow-y-auto">
 
             <!-- Alert Messages -->
             <?php if (isset($_SESSION['error'])): ?>
@@ -146,6 +164,7 @@ $redirectUrl = isset($_GET['redirect']) ? $_GET['redirect'] : '';
                 <p class="text-gray-400 mb-8 font-medium text-sm">Lanjutkan niat ibadah Anda bersama kami.</p>
 
                 <form action="/lautan-ternak-pantura/api/auth/login" method="POST" class="space-y-5">
+                    <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken); ?>">
                     <?php if ($redirectUrl): ?><input type="hidden" name="redirect"
                             value="<?php echo htmlspecialchars($redirectUrl); ?>"><?php endif; ?>
                     <div>
@@ -202,41 +221,22 @@ $redirectUrl = isset($_GET['redirect']) ? $_GET['redirect'] : '';
                                 class="text-brand-primary hover:underline ml-1 font-black">Daftar Akun Baru</button>
                         </p>
                     </div>
-
-                    <!-- Demo Account Info Helper Card -->
-                    <div class="mt-6 p-4 rounded-2xl bg-amber-50 border border-amber-200/60 shadow-sm relative overflow-hidden group">
-                        <div class="absolute -right-4 -bottom-4 w-12 h-12 bg-amber-100/40 rounded-full blur-lg"></div>
-                        <h4 class="text-xs font-bold text-amber-800 flex items-center gap-1.5 mb-2.5">
-                            <i class="fas fa-lightbulb text-amber-600 animate-pulse"></i>
-                            <span>💡 Akun Uji Coba (Demo Credentials)</span>
-                        </h4>
-                        <div class="space-y-1.5 text-xs text-amber-700 font-medium">
-                            <div class="flex items-center justify-between border-b border-amber-100 pb-1.5">
-                                <span>👑 Admin:</span>
-                                <span class="font-bold bg-amber-100/80 px-2 py-0.5 rounded cursor-pointer hover:bg-amber-200/80 transition" onclick="fillDemo('admin@ltp.com', 'password123')">admin@ltp.com <span class="text-[9px] text-amber-500 font-normal">(Klik)</span></span>
-                            </div>
-                            <div class="flex items-center justify-between border-b border-amber-100 py-1.5">
-                                <span>👤 Pelanggan:</span>
-                                <span class="font-bold bg-amber-100/80 px-2 py-0.5 rounded cursor-pointer hover:bg-amber-200/80 transition" onclick="fillDemo('siti@customer.com', 'password123')">siti@customer.com <span class="text-[9px] text-amber-500 font-normal">(Klik)</span></span>
-                            </div>
-                            <div class="flex items-center justify-between pt-1.5">
-                                <span>👨‍🌾 Peternak:</span>
-                                <span class="font-bold bg-amber-100/80 px-2 py-0.5 rounded cursor-pointer hover:bg-amber-200/80 transition" onclick="fillDemo('ahmad@breeder.com', 'password123')">ahmad@breeder.com <span class="text-[9px] text-amber-500 font-normal">(Klik)</span></span>
-                            </div>
-                            <div class="text-[10px] text-amber-600 mt-2 text-center italic font-semibold">
-                                * Kata Sandi untuk semua akun demo: <span class="underline">password123</span>
-                            </div>
-                        </div>
-                    </div>
                 </form>
             </div>
 
             <!-- Register Content -->
             <div id="register-content" class="form-transition hidden opacity-0 scale-95">
                 <h1 class="text-3xl font-black text-gray-900 mb-1 tracking-tight">Buat Akun</h1>
-                <p class="text-gray-400 mb-6 font-medium text-sm">Mulai perjalanan kurban Anda bersama kami.</p>
+                <p class="text-gray-400 mb-6 font-medium text-sm">Mulai perjalanan kurban sebagai Sohibul Qurban.</p>
+
+                <?php if (!empty($registerErrors['database']) || !empty($registerErrors['csrf'])): ?>
+                    <div class="mb-4 rounded-2xl bg-red-50 border border-red-100 text-red-600 px-5 py-4 text-xs font-black">
+                        <?php echo htmlspecialchars($registerErrors['database'] ?? $registerErrors['csrf']); ?>
+                    </div>
+                <?php endif; ?>
 
                 <form action="/lautan-ternak-pantura/api/auth/register" method="POST" class="space-y-4">
+                    <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken); ?>">
                     <input type="hidden" name="redirect" id="register-redirect"
                         value="<?php echo htmlspecialchars($redirectUrl); ?>">
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -244,17 +244,20 @@ $redirectUrl = isset($_GET['redirect']) ? $_GET['redirect'] : '';
                             <label
                                 class="block text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-2 ml-1">Nama
                                 Lengkap</label>
-                            <input type="text" name="name" placeholder="Nama Anda" required
+                            <input type="text" name="full_name" value="<?php echo authOld('full_name', authOld('name')); ?>" placeholder="Nama Anda" required minlength="3"
                                 class="w-full px-5 py-5 bg-gray-50 border-2 border-transparent focus:border-brand-primary/10 focus:bg-white rounded-2xl outline-none transition-all text-gray-700 font-bold">
+                            <?php echo authError('full_name'); ?>
                         </div>
                         <div>
                             <label
-                                class="block text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-2 ml-1">Daftar
-                                Sebagai</label>
-                            <select name="role"
+                                class="block text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-2 ml-1">Jenis Kelamin</label>
+                            <select name="gender" required
                                 class="w-full px-5 py-5 bg-gray-50 border-2 border-transparent focus:border-brand-primary/10 focus:bg-white rounded-2xl outline-none transition-all text-gray-700 font-black cursor-pointer">
-                                <option value="customer">Pembeli / Pekurban</option>
+                                <option value="">Pilih</option>
+                                <option value="male" <?php echo authOld('gender') === 'male' ? 'selected' : ''; ?>>Laki-laki</option>
+                                <option value="female" <?php echo authOld('gender') === 'female' ? 'selected' : ''; ?>>Perempuan</option>
                             </select>
+                            <?php echo authError('gender'); ?>
                         </div>
                     </div>
 
@@ -262,22 +265,73 @@ $redirectUrl = isset($_GET['redirect']) ? $_GET['redirect'] : '';
                         <label
                             class="block text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-2 ml-1">Alamat
                             Email</label>
-                        <input type="email" name="email" placeholder="email@contoh.com" required
+                        <input type="email" name="email" value="<?php echo authOld('email'); ?>" placeholder="email@contoh.com" required
                             class="w-full px-5 py-5 bg-gray-50 border-2 border-transparent focus:border-brand-primary/10 focus:bg-white rounded-2xl outline-none transition-all text-gray-700 font-bold">
+                        <?php echo authError('email'); ?>
                     </div>
 
                     <div>
+                        <label
+                            class="block text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-2 ml-1">Nomor WhatsApp</label>
+                        <input type="tel" name="phone" value="<?php echo authOld('phone'); ?>" placeholder="08xxxxxxxxxx" required pattern="[0-9]{10,}"
+                            class="w-full px-5 py-5 bg-gray-50 border-2 border-transparent focus:border-brand-primary/10 focus:bg-white rounded-2xl outline-none transition-all text-gray-700 font-bold">
+                        <?php echo authError('phone'); ?>
+                    </div>
+
+                    <div>
+                        <label
+                            class="block text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-2 ml-1">Alamat Lengkap</label>
+                        <textarea name="address" rows="2" placeholder="Alamat lengkap" required
+                            class="w-full px-5 py-5 bg-gray-50 border-2 border-transparent focus:border-brand-primary/10 focus:bg-white rounded-2xl outline-none transition-all text-gray-700 font-bold resize-none"><?php echo authOld('address'); ?></textarea>
+                        <?php echo authError('address'); ?>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                            <label
+                                class="block text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-2 ml-1">Kota</label>
+                            <input type="text" name="city" value="<?php echo authOld('city'); ?>" placeholder="Cirebon" required
+                                class="w-full px-5 py-5 bg-gray-50 border-2 border-transparent focus:border-brand-primary/10 focus:bg-white rounded-2xl outline-none transition-all text-gray-700 font-bold">
+                            <?php echo authError('city'); ?>
+                        </div>
+                        <div>
+                            <label
+                                class="block text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-2 ml-1">Provinsi</label>
+                            <input type="text" name="province" value="<?php echo authOld('province'); ?>" placeholder="Jawa Barat" required
+                                class="w-full px-5 py-5 bg-gray-50 border-2 border-transparent focus:border-brand-primary/10 focus:bg-white rounded-2xl outline-none transition-all text-gray-700 font-bold">
+                            <?php echo authError('province'); ?>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
                         <label
                             class="block text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-2 ml-1">Kata
                             Sandi Baru</label>
                         <div class="relative">
                             <input type="password" id="register-password" name="password"
-                                placeholder="Minimal 8 karakter" required
+                                placeholder="Minimal 8 karakter" required minlength="8"
                                 class="w-full px-5 pr-14 py-5 bg-gray-50 border-2 border-transparent focus:border-brand-primary/10 focus:bg-white rounded-2xl outline-none transition-all text-gray-700 font-bold">
                             <button type="button" onclick="togglePassword('register-password')"
                                 class="absolute right-5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-brand-primary transition-colors px-1">
                                 <i class="far fa-eye text-lg" id="eye-register-password"></i>
                             </button>
+                        </div>
+                        <?php echo authError('password'); ?>
+                        </div>
+                        <div>
+                        <label
+                            class="block text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-2 ml-1">Konfirmasi</label>
+                        <div class="relative">
+                            <input type="password" id="register-password-confirm" name="password_confirm"
+                                placeholder="Ulangi password" required minlength="8"
+                                class="w-full px-5 pr-14 py-5 bg-gray-50 border-2 border-transparent focus:border-brand-primary/10 focus:bg-white rounded-2xl outline-none transition-all text-gray-700 font-bold">
+                            <button type="button" onclick="togglePassword('register-password-confirm')"
+                                class="absolute right-5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-brand-primary transition-colors px-1">
+                                <i class="far fa-eye text-lg" id="eye-register-password-confirm"></i>
+                            </button>
+                        </div>
+                        <?php echo authError('password_confirm'); ?>
                         </div>
                     </div>
 
@@ -322,11 +376,6 @@ $redirectUrl = isset($_GET['redirect']) ? $_GET['redirect'] : '';
                         class="text-2xl font-extrabold text-brand-primary leading-[1.1] relative z-10 mb-6 italic tracking-tighter">
                         "Amanah dalam Setiap Kurban"
                     </p>
-                    <div class="flex items-center gap-4">
-                        <div class="w-12 h-1.5 bg-brand-secondary rounded-full"></div>
-                        <p class="text-gray-500 font-bold text-xs tracking-wide">Menjaga tradisi dengan kasih dan
-                            martabat.</p>
-                    </div>
                 </div>
             </div>
         </div>

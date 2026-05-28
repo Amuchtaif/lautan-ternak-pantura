@@ -33,15 +33,14 @@ try {
     $db->exec("
         CREATE TABLE livestock (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-            code VARCHAR(100) UNIQUE NOT NULL,
-            name VARCHAR(255) NOT NULL,
-            category VARCHAR(100) NOT NULL,
+            livestock_code VARCHAR(100) UNIQUE NOT NULL,
+            peternak_name VARCHAR(150) NOT NULL,
             breed VARCHAR(100) NOT NULL,
             age INTEGER NOT NULL,
             weight DECIMAL(10,2) NOT NULL,
             gender VARCHAR(50) NOT NULL,
-            price DECIMAL(15,2) NOT NULL,
             purchase_price DECIMAL(15,2) DEFAULT 0,
+            selling_price DECIMAL(15,2) NOT NULL,
             stock INTEGER NOT NULL,
             status VARCHAR(100) DEFAULT 'available',
             image VARCHAR(255) DEFAULT NULL,
@@ -68,23 +67,61 @@ try {
     $db->exec("
         CREATE TABLE savings_plans (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
+            plan_code VARCHAR(100) UNIQUE NOT NULL,
             customer_id INTEGER NOT NULL,
-            livestock_id INTEGER NOT NULL,
+            livestock_target VARCHAR(150) NOT NULL,
             target_amount DECIMAL(15,2) NOT NULL,
-            monthly_installment DECIMAL(15,2) NOT NULL,
+            current_amount DECIMAL(15,2) DEFAULT 0,
+            monthly_target DECIMAL(15,2) NOT NULL,
+            duration_month INTEGER NOT NULL,
+            start_date DATE NOT NULL,
+            target_date DATE NOT NULL,
             status VARCHAR(100) DEFAULT 'active',
-            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            notes TEXT DEFAULT NULL,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
         )
     ");
 
     $db->exec("
         CREATE TABLE savings_transactions (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-            plan_id INTEGER NOT NULL,
+            savings_plan_id INTEGER NOT NULL,
             amount DECIMAL(15,2) NOT NULL,
-            proof_of_payment VARCHAR(255) NOT NULL,
-            status VARCHAR(100) DEFAULT 'pending',
+            payment_method VARCHAR(50) NOT NULL,
+            payment_proof VARCHAR(255) NOT NULL,
+            transaction_status VARCHAR(100) DEFAULT 'pending',
             verified_by INTEGER DEFAULT NULL,
+            verified_at DATETIME DEFAULT NULL,
+            notes TEXT DEFAULT NULL,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        )
+    ");
+    $db->exec("
+        CREATE TABLE purchases (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            purchase_code VARCHAR(100) UNIQUE NOT NULL,
+            livestock_id INTEGER NOT NULL,
+            peternak_name VARCHAR(150) NOT NULL,
+            qty INTEGER NOT NULL,
+            purchase_price DECIMAL(15,2) NOT NULL,
+            total_purchase DECIMAL(15,2) NOT NULL,
+            amount_paid DECIMAL(15,2) NOT NULL DEFAULT 0,
+            payment_type VARCHAR(50) DEFAULT 'lunas',
+            notes TEXT DEFAULT NULL,
+            purchased_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            created_by INTEGER NOT NULL
+        )
+    ");
+
+    $db->exec("
+        CREATE TABLE purchase_payments (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            purchase_id INTEGER NOT NULL,
+            payment_code VARCHAR(100) UNIQUE NOT NULL,
+            payment_amount DECIMAL(15,2) NOT NULL,
+            payment_date DATETIME DEFAULT CURRENT_TIMESTAMP,
+            notes TEXT DEFAULT NULL,
             created_at DATETIME DEFAULT CURRENT_TIMESTAMP
         )
     ");
@@ -99,6 +136,7 @@ require_once __DIR__ . '/../models/User.php';
 require_once __DIR__ . '/../models/Livestock.php';
 require_once __DIR__ . '/../models/Order.php';
 require_once __DIR__ . '/../models/Savings.php';
+require_once __DIR__ . '/../models/Purchase.php';
 
 // Simple Test Runner Engine
 $testsPassed = 0;
@@ -133,6 +171,9 @@ require_once __DIR__ . '/AdminManualSaleTest.php';
 
 echo "\n📈 [TEST SUITE: Savings Plan]\n";
 require_once __DIR__ . '/SavingsTest.php';
+
+echo "\n📦 [TEST SUITE: Purchase & Inventory Sync]\n";
+require_once __DIR__ . '/PurchaseTest.php';
 
 // Summary
 echo "\n==================================================\n";
