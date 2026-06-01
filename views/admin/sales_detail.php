@@ -225,7 +225,7 @@ require_once 'views/admin/includes/sidebar.php';
                             <span class="text-gray-800"><?php echo $sale['qty']; ?> ekor</span>
                         </div>
                         <div class="flex justify-between items-center">
-                            <span>Harga Snapshot</span>
+                            <span>Harga Hewan</span>
                             <span class="text-gray-800">Rp <?php echo number_format($sale['selling_price_snapshot'], 0, ',', '.'); ?></span>
                         </div>
                     </div>

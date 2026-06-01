@@ -33,9 +33,9 @@ require_once __DIR__ . '/../../includes/header.php';
             <input type="hidden" name="livestock_id" value="<?php echo $livestock['id']; ?>">
             <input type="hidden" name="qty" id="hidden-qty" value="1">
 
-            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                <!-- Left Panel: Data Diri & Order Form (2 Columns) -->
-                <div class="lg:col-span-2 space-y-6">
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+                <!-- Left Panel: Data Diri & Order Form (7 Columns of 12) -->
+                <div class="lg:col-span-7 space-y-6">
                     
                     <!-- Animal Card -->
                     <div class="bg-white rounded-3xl shadow-sm border border-gray-100 p-8 flex flex-col sm:flex-row gap-6">
@@ -83,10 +83,10 @@ require_once __DIR__ . '/../../includes/header.php';
                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
                             <!-- Full Name -->
                             <div class="space-y-2">
-                                <label class="text-[10px] font-black text-gray-400 uppercase tracking-widest px-1">Nama Lengkap Penerima <span class="text-red-500">*</span></label>
-                                <input type="text" name="customer_name" required readonly
-                                    value="<?php echo htmlspecialchars($userData['full_name'] ?? $userData['name'] ?? $_SESSION['full_name'] ?? ''); ?>"
-                                    class="w-full px-5 py-4 bg-gray-50 border border-gray-200 rounded-2xl outline-none focus:border-brand-primary/20 focus:bg-white transition-all font-bold text-sm text-gray-500 cursor-not-allowed">
+                                 <label class="text-[10px] font-black text-gray-400 uppercase tracking-widest px-1">Nama Lengkap Penerima <span class="text-red-500">*</span></label>
+                                 <input type="text" name="customer_name" required <?php echo !isset($_SESSION['user_id']) ? '' : 'readonly'; ?>
+                                     value="<?php echo htmlspecialchars($userData['full_name'] ?? $userData['name'] ?? $_SESSION['full_name'] ?? ''); ?>"
+                                     class="w-full px-5 py-4 bg-gray-50 border border-gray-200 rounded-2xl outline-none focus:border-brand-primary/20 focus:bg-white transition-all font-bold text-sm <?php echo !isset($_SESSION['user_id']) ? 'text-gray-700' : 'text-gray-500 cursor-not-allowed'; ?>">
                             </div>
 
                             <!-- Phone / WhatsApp -->
@@ -170,11 +170,11 @@ require_once __DIR__ . '/../../includes/header.php';
                                 <img src="https://upload.wikimedia.org/wikipedia/commons/5/5c/Bank_Central_Asia.svg" class="h-6 w-auto">
                                 <div>
                                     <div class="flex items-center gap-2">
-                                        <p class="text-base font-black text-gray-900" id="bank-number">8610 9928 11</p>
+                                        <p class="text-base font-black text-gray-900" id="bank-number">1341699695</p>
                                         <button type="button" onclick="copyBankNumber()"
                                             class="text-xs text-brand-primary font-black hover:underline focus:outline-none"><i class="far fa-copy"></i> Salin</button>
                                     </div>
-                                    <p class="text-[10px] font-bold text-gray-500 uppercase tracking-widest">A/N LAUTAN TERNAK PANTURA</p>
+                                    <p class="text-[10px] font-bold text-gray-500 uppercase tracking-widest">A/N Shohibudin</p>
                                 </div>
                             </div>
                             <div class="text-xs text-gray-500 leading-relaxed font-semibold">
@@ -206,34 +206,34 @@ require_once __DIR__ . '/../../includes/header.php';
                     </div>
                 </div>
 
-                <!-- Right Panel: Summary & Button (1 Column) -->
-                <div class="space-y-6">
+                <!-- Right Panel: Summary & Button (5 Columns of 12) -->
+                <div class="lg:col-span-5 space-y-6">
                     <div class="bg-white rounded-3xl shadow-sm border border-gray-100 p-8 space-y-6 sticky top-24">
                         <h3 class="text-lg font-black text-gray-900 tracking-tight">Ringkasan Tagihan</h3>
 
                         <div class="space-y-4 border-b border-gray-100 pb-6 text-sm font-bold text-gray-500">
                             <div class="flex justify-between items-center">
-                                <span>Harga Snapshot</span>
-                                <span>Rp <?php echo number_format($livestock['selling_price'], 0, ',', '.'); ?></span>
+                                <span>Harga Hewan</span>
+                                <span class="font-extrabold text-gray-800">Rp <?php echo number_format($livestock['selling_price'], 0, ',', '.'); ?></span>
                             </div>
                             <div class="flex justify-between items-center">
                                 <span>Kuantitas</span>
-                                <span id="qty-summary">1 ekor</span>
+                                <span id="qty-summary" class="font-extrabold text-gray-800">1 ekor</span>
                             </div>
                             <div class="flex justify-between items-center">
                                 <span>Skema Bayar</span>
-                                <span id="payment-scheme-summary" class="text-emerald-600 uppercase font-black text-xs">LUNAS</span>
+                                <span id="payment-scheme-summary" class="text-brand-primary uppercase font-black text-xs bg-brand-light/30 px-3 py-1 rounded-full">LUNAS</span>
                             </div>
                         </div>
 
-                        <div class="space-y-2">
+                        <div class="space-y-3">
                             <div class="flex justify-between items-center">
-                                <span class="text-sm font-black text-gray-900">Total Pembelian</span>
-                                <span class="text-lg font-black text-gray-800" id="total-summary">Rp <?php echo number_format($livestock['selling_price'], 0, ',', '.'); ?></span>
+                                <span class="text-[10px] font-black text-gray-400 uppercase tracking-widest">Total Pembelian</span>
+                                <span class="text-base font-black text-gray-900" id="total-summary">Rp <?php echo number_format($livestock['selling_price'], 0, ',', '.'); ?></span>
                             </div>
-                            <div class="flex justify-between items-center border-t border-dashed border-gray-100 pt-3">
+                            <div class="flex justify-between items-center border-t border-dashed border-gray-100 pt-4">
                                 <span class="text-sm font-black text-gray-950">Setoran Awal (Transfer)</span>
-                                <span class="text-xl font-black text-brand-primary" id="total-transfer-summary">Rp <?php echo number_format($livestock['selling_price'], 0, ',', '.'); ?></span>
+                                <span class="font-black text-brand-primary" id="total-transfer-summary">Rp <?php echo number_format($livestock['selling_price'], 0, ',', '.'); ?></span>
                             </div>
                         </div>
 

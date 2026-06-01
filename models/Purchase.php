@@ -159,7 +159,13 @@ class Purchase {
 
             // Update livestock details
             // Combine breed and livestock_name
-            $breedDbValue = ucfirst($data['breed']) . ' ' . $data['livestock_name'];
+            $breedLower = strtolower($data['breed']);
+            $nameLower = strtolower($data['livestock_name']);
+            if (strpos($nameLower, $breedLower) === 0) {
+                $breedDbValue = ucfirst($data['livestock_name']);
+            } else {
+                $breedDbValue = ucfirst($data['breed']) . ' ' . $data['livestock_name'];
+            }
             $updateLivestockQuery = "UPDATE livestock 
                                      SET breed = ?, weight = ?, purchase_price = ?, selling_price = ?, stock = ?, status = ? 
                                      WHERE id = ?";

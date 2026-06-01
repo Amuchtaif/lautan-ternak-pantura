@@ -29,7 +29,7 @@
                         class="group relative w-full sm:w-auto px-8 py-4 bg-brand-primary text-white rounded-full font-bold text-lg hover:shadow-xl hover:-translate-y-1 transition-all duration-300 overflow-hidden flex items-center justify-center shadow-brand-primary/30 shadow-lg">
                         <div class="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300 ease-in-out"></div>
                         <span class="relative z-10 flex items-center gap-2">
-                            <i class="fas fa-piggy-bank text-xl"></i> Daftar Tabungan Qurban
+                            <i class="fas fa-paw text-xl"></i> Daftar Tabungan Qurban
                         </span>
                     </a>
                     <a href="/lautan-ternak-pantura/marketplace"

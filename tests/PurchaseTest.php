@@ -140,3 +140,58 @@ it("dapat menghapus catatan pembelian dan mendikremen stok secara otomatis", fun
         throw new Exception("Livestock status should be sold if stock is 0.");
     }
 });
+
+it("tidak akan melakukan dobel penamaan (breed duplication) jika livestock_name sudah diawali breed", function() use ($db) {
+    $livestockModel = new Livestock($db);
+    $purchaseModel = new Purchase($db);
+
+    // 1. Create a livestock record
+    $livestockCode = 'LIV-DOUBLE-TEST';
+    $livestockData = [
+        'livestock_code' => $livestockCode,
+        'peternak_name' => 'Pak Bambang',
+        'breed' => 'Domba Garut',
+        'age' => 8,
+        'weight' => 45.0,
+        'gender' => 'male',
+        'purchase_price' => 2000000,
+        'selling_price' => 3000000,
+        'stock' => 1,
+        'status' => 'available',
+        'image' => null,
+        'description' => 'Test double naming'
+    ];
+    $livestockModel->create($livestockData);
+    $livestockId = $db->lastInsertId();
+
+    // 2. Create a purchase
+    $purchaseData = [
+        'purchase_code' => 'PUR-DOUBLE-001',
+        'livestock_id' => $livestockId,
+        'peternak_name' => 'Pak Bambang',
+        'qty' => 1,
+        'purchase_price' => 2000000,
+        'notes' => 'Test double naming',
+        'created_by' => 1,
+        'purchased_at' => date('Y-m-d H:i:s')
+    ];
+    $purchaseModel->create($purchaseData);
+    $purchaseId = $db->lastInsertId();
+
+    // 3. Update purchase with breed='domba' and livestock_name='domba garut'
+    $updateData = [
+        'livestock_name' => 'domba garut',
+        'breed' => 'domba',
+        'weight' => 50.0,
+        'qty' => 1,
+        'purchase_price' => 2100000,
+        'selling_price' => 3200000,
+        'notes' => 'Updated double naming'
+    ];
+    $purchaseModel->update($purchaseId, $updateData);
+
+    $liveAfter = $livestockModel->getById($livestockId);
+    if ($liveAfter['breed'] !== 'Domba garut') {
+        throw new Exception("Livestock breed should be 'Domba garut', got: " . $liveAfter['breed']);
+    }
+});

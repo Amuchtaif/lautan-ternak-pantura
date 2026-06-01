@@ -22,7 +22,7 @@ $amount = filter_input(INPUT_POST, 'amount', FILTER_VALIDATE_FLOAT);
 $paymentMethod = trim($_POST['payment_method'] ?? 'transfer_bank');
 $depositDate = trim($_POST['deposit_date'] ?? date('Y-m-d'));
 $notes = trim($_POST['notes'] ?? '');
-$redirect = $planId ? '/lautan-ternak-pantura/savings/detail/' . $planId : '/lautan-ternak-pantura/savings';
+$redirect = '/lautan-ternak-pantura/customer/dashboard';
 
 if (empty($_POST['csrf_token']) || empty($_SESSION['csrf_token']) || !hash_equals($_SESSION['csrf_token'], $_POST['csrf_token'])) {
     header('Location: ' . $redirect . '?error=csrf');

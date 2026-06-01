@@ -54,7 +54,6 @@ $fullName = trim($_POST['full_name'] ?? '');
 $phone = trim($_POST['phone'] ?? '');
 $email = strtolower(trim($_POST['email'] ?? ''));
 $address = trim($_POST['address'] ?? '');
-$username = strtolower(trim($_POST['username'] ?? ''));
 $password = (string)($_POST['password'] ?? '');
 $confirmPassword = (string)($_POST['password_confirm'] ?? '');
 $targetMode = $_POST['target_mode'] ?? 'livestock';
@@ -66,12 +65,26 @@ $paymentMethod = trim($_POST['payment_method'] ?? 'transfer_bank');
 $paymentProof = null;
 $targetPath = null;
 
-if ($fullName === '' || $phone === '' || $address === '' || $username === '') {
+if ($fullName === '' || $phone === '' || $address === '' || $email === '') {
     redirectTabungan('invalid_data');
 }
 
+// Generate username automatically from email
+$username = strstr($email, '@', true);
+if (!$username) {
+    $username = 'user_' . time() . '_' . rand(10, 99);
+} else {
+    $username = preg_replace('/[^a-z0-9._-]/', '', $username);
+    if (strlen($username) < 4) {
+        $username = str_pad($username, 4, '0', STR_PAD_RIGHT);
+    }
+    if (strlen($username) > 40) {
+        $username = substr($username, 0, 40);
+    }
+}
+
 if (!preg_match('/^[a-z0-9._-]{4,50}$/', $username)) {
-    redirectTabungan('username_invalid');
+    $username = 'user_' . time() . '_' . rand(10, 99);
 }
 
 if (strlen($password) < 8 || !preg_match('/[A-Za-z]/', $password) || !preg_match('/[0-9]/', $password)) {
@@ -82,12 +95,12 @@ if ($password !== $confirmPassword) {
     redirectTabungan('password_mismatch');
 }
 
-if ($email !== '' && !filter_var($email, FILTER_VALIDATE_EMAIL)) {
+if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
     redirectTabungan('email_invalid');
 }
 
 $initialDeposit = $initialDeposit ?: 0;
-if ($initialDeposit < 10000) {
+if ($initialDeposit > 0 && $initialDeposit < 10000) {
     redirectTabungan('invalid_data');
 }
 
@@ -95,44 +108,49 @@ if (!in_array($paymentMethod, ['transfer_bank', 'qris', 'cash'], true)) {
     $paymentMethod = 'transfer_bank';
 }
 
-if ($paymentMethod !== 'cash') {
-    if (!isset($_FILES['payment_proof']) || $_FILES['payment_proof']['error'] !== UPLOAD_ERR_OK) {
-        redirectTabungan('upload_failed');
-    }
+if ($initialDeposit > 0) {
+    if ($paymentMethod !== 'cash') {
+        if (!isset($_FILES['payment_proof']) || $_FILES['payment_proof']['error'] !== UPLOAD_ERR_OK) {
+            redirectTabungan('upload_failed');
+        }
 
-    $allowedTypes = [
-        'image/jpeg' => 'jpg',
-        'image/png' => 'png',
-        'image/webp' => 'webp'
-    ];
-    $file = $_FILES['payment_proof'];
-    if ($file['size'] > 2 * 1024 * 1024) {
-        redirectTabungan('upload_failed');
-    }
+        $allowedTypes = [
+            'image/jpeg' => 'jpg',
+            'image/png' => 'png',
+            'image/webp' => 'webp'
+        ];
+        $file = $_FILES['payment_proof'];
+        if ($file['size'] > 2 * 1024 * 1024) {
+            redirectTabungan('upload_failed');
+        }
 
-    $finfo = new finfo(FILEINFO_MIME_TYPE);
-    $mime = $finfo->file($file['tmp_name']);
-    if (!isset($allowedTypes[$mime])) {
-        redirectTabungan('invalid_file');
-    }
+        $finfo = new finfo(FILEINFO_MIME_TYPE);
+        $mime = $finfo->file($file['tmp_name']);
+        if (!isset($allowedTypes[$mime])) {
+            redirectTabungan('invalid_file');
+        }
 
-    $uploadDir = dirname(__DIR__, 2) . '/storage/uploads/savings/';
-    if (!is_dir($uploadDir)) {
-        mkdir($uploadDir, 0755, true);
-    }
+        $uploadDir = dirname(__DIR__, 2) . '/storage/uploads/savings/';
+        if (!is_dir($uploadDir)) {
+            mkdir($uploadDir, 0755, true);
+        }
 
-    $fileName = 'savings_register_' . date('YmdHis') . '_' . bin2hex(random_bytes(6)) . '.' . $allowedTypes[$mime];
-    $targetPath = $uploadDir . $fileName;
-    if (!move_uploaded_file($file['tmp_name'], $targetPath)) {
-        redirectTabungan('upload_failed');
+        $fileName = 'savings_register_' . date('YmdHis') . '_' . bin2hex(random_bytes(6)) . '.' . $allowedTypes[$mime];
+        $targetPath = $uploadDir . $fileName;
+        if (!move_uploaded_file($file['tmp_name'], $targetPath)) {
+            redirectTabungan('upload_failed');
+        }
+        $paymentProof = '/lautan-ternak-pantura/storage/uploads/savings/' . $fileName;
+    } else {
+        $paymentProof = 'cash_registration';
     }
-    $paymentProof = '/lautan-ternak-pantura/storage/uploads/savings/' . $fileName;
-} else {
-    $paymentProof = 'cash_registration';
 }
 
 try {
     $today = new DateTimeImmutable('today');
+    if ($targetDateInput === '') {
+        $targetDateInput = date('Y-m-d', strtotime('+10 months'));
+    }
     $targetDate = new DateTimeImmutable($targetDateInput);
     if ($targetDate <= $today) {
         throw new RuntimeException('invalid date');
@@ -148,12 +166,18 @@ try {
 
 try {
     $userModel = new User($conn);
+    // Resolve username conflict automatically by appending suffix
     if ($userModel->usernameExists($username)) {
-        redirectTabungan('username_taken');
+        $baseUsername = $username;
+        $suffix = 1;
+        while ($userModel->usernameExists($username)) {
+            $username = substr($baseUsername, 0, 45) . $suffix;
+            $suffix++;
+        }
     }
 
     if ($email === '') {
-        $email = $username . '@tabungan-qurban.local';
+        redirectTabungan('email_invalid');
     }
     if ($userModel->emailExists($email)) {
         redirectTabungan('email_taken');
@@ -172,7 +196,7 @@ try {
         $targetAmount = (float)$livestock['price'];
     }
 
-    if ($targetAmount < 100000 || $initialDeposit > $targetAmount) {
+    if ($targetAmount < 100000 || ($initialDeposit > 0 && $initialDeposit > $targetAmount)) {
         redirectTabungan('invalid_data');
     }
 
@@ -209,14 +233,16 @@ try {
     ");
     $stmtSohibul->execute([$planId, $fullName, $phone, $address]);
 
-    $transactionModel = new SavingsTransaction($conn);
-    $transactionModel->createDeposit([
-        'savings_plan_id' => $planId,
-        'amount' => $initialDeposit,
-        'payment_method' => $paymentMethod,
-        'payment_proof' => $paymentProof,
-        'notes' => 'Setoran awal dari registrasi Program Tabungan Qurban.'
-    ]);
+    if ($initialDeposit > 0) {
+        $transactionModel = new SavingsTransaction($conn);
+        $transactionModel->createDeposit([
+            'savings_plan_id' => $planId,
+            'amount' => $initialDeposit,
+            'payment_method' => $paymentMethod,
+            'payment_proof' => $paymentProof,
+            'notes' => 'Setoran awal dari registrasi Program Tabungan Qurban.'
+        ]);
+    }
 
     $conn->commit();
 
@@ -224,7 +250,7 @@ try {
     AuthHelper::login($user);
     $userModel->updateLastLogin($userId);
 
-    header('Location: /lautan-ternak-pantura/savings/detail/' . $planId . '?success=plan_created');
+    header('Location: /lautan-ternak-pantura/customer/dashboard?success=plan_created');
 } catch (Throwable $e) {
     if (isset($conn) && $conn->inTransaction()) {
         $conn->rollBack();

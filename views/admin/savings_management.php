@@ -41,9 +41,10 @@ $dueSoon = (int)($stats['due_soon'] ?? 0);
 
         <div class="bg-white rounded-lg border border-gray-100 overflow-hidden">
             <div class="overflow-x-auto">
-                <table class="w-full">
+                <table class="w-full" id="savings-table">
                     <thead class="bg-gray-50">
                         <tr>
+                            <th class="px-6 py-4 text-left text-xs font-black text-gray-400 uppercase w-16">No</th>
                             <th class="px-6 py-4 text-left text-xs font-black text-gray-400 uppercase">Kode</th>
                             <th class="px-6 py-4 text-left text-xs font-black text-gray-400 uppercase">Nasabah</th>
                             <th class="px-6 py-4 text-left text-xs font-black text-gray-400 uppercase">Target</th>
@@ -54,11 +55,12 @@ $dueSoon = (int)($stats['due_soon'] ?? 0);
                     </thead>
                     <tbody class="divide-y divide-gray-100">
                         <?php if (empty($plans)): ?>
-                            <tr><td colspan="6" class="px-6 py-8 text-center text-gray-500 font-bold">Data tabungan belum ada.</td></tr>
+                            <tr><td colspan="7" class="px-6 py-8 text-center text-gray-500 font-bold">Data tabungan belum ada.</td></tr>
                         <?php else: ?>
-                            <?php foreach ($plans as $plan): ?>
+                            <?php foreach ($plans as $i => $plan): ?>
                                 <?php $progress = $plan['target_amount'] > 0 ? min(100, round(($plan['current_amount'] / $plan['target_amount']) * 100, 2)) : 0; ?>
                                 <tr>
+                                    <td class="px-6 py-4"><p class="text-sm font-black text-gray-400"><?php echo $i + 1; ?></p></td>
                                     <td class="px-6 py-4"><p class="font-black text-brand-primary"><?php echo htmlspecialchars($plan['plan_code']); ?></p><p class="text-xs text-gray-400"><?php echo htmlspecialchars($plan['livestock_target']); ?></p></td>
                                     <td class="px-6 py-4"><p class="font-black text-gray-900"><?php echo htmlspecialchars($plan['customer_name']); ?></p><p class="text-xs text-gray-400"><?php echo htmlspecialchars($plan['customer_email']); ?></p></td>
                                     <td class="px-6 py-4 text-sm font-bold text-gray-700">Rp <?php echo number_format($plan['target_amount'], 0, ',', '.'); ?></td>
@@ -86,6 +88,31 @@ $dueSoon = (int)($stats['due_soon'] ?? 0);
                         <?php endif; ?>
                     </tbody>
                 </table>
+            </div>
+
+            <!-- Table Footer with Pagination -->
+            <div class="px-8 py-5 bg-gray-50/50 border-t border-gray-100 flex flex-col sm:flex-row justify-between items-center gap-4 shrink-0">
+                <div class="flex items-center gap-3">
+                    <span class="text-xs font-bold text-gray-400 uppercase tracking-wider">Tampilkan</span>
+                    <div class="relative">
+                        <select id="entries-per-page" onchange="changeEntriesPerPage(this.value)" class="pl-4 pr-10 py-2 bg-white border border-gray-100 rounded-lg outline-none focus:border-brand-primary text-xs font-bold text-gray-700 appearance-none cursor-pointer shadow-sm">
+                            <option value="5">5</option>
+                            <option value="10" selected>10</option>
+                            <option value="25">25</option>
+                            <option value="50">50</option>
+                        </select>
+                        <i class="fas fa-chevron-down absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none text-[10px]"></i>
+                    </div>
+                    <span class="text-xs font-bold text-gray-400 uppercase tracking-wider">data</span>
+                </div>
+                <div class="flex items-center gap-2">
+                    <button onclick="prevPage()" id="prev-btn" class="w-8 h-8 rounded-lg border border-gray-100 bg-white flex items-center justify-center text-gray-400 hover:text-brand-primary hover:border-brand-primary/20 transition-all shadow-sm"><i class="fas fa-chevron-left text-xs"></i></button>
+                    <div id="page-numbers" class="flex items-center gap-1.5">
+                        <!-- Dynamic page numbers -->
+                    </div>
+                    <button onclick="nextPage()" id="next-btn" class="w-8 h-8 rounded-lg border border-gray-100 bg-white flex items-center justify-center text-gray-400 hover:text-brand-primary hover:border-brand-primary/20 transition-all shadow-sm"><i class="fas fa-chevron-right text-xs"></i></button>
+                </div>
+                <span class="text-xs font-bold text-gray-400 uppercase tracking-wider" id="entries-info"></span>
             </div>
         </div>
     </main>
@@ -199,5 +226,104 @@ async function deletePlan() {
     btn.disabled = false;
     btn.textContent = 'Delete';
 }
+
+// Client-side pagination engine
+let currentPage = 1;
+let rowsPerPage = 10;
+let tableRows = [];
+
+function initPagination() {
+    tableRows = Array.from(document.querySelectorAll('#savings-table tbody tr')).filter(row => !row.cells[0].classList.contains('text-center'));
+    showPage(1);
+}
+
+function showPage(page) {
+    currentPage = page;
+    const totalRows = tableRows.length;
+    const totalPages = Math.ceil(totalRows / rowsPerPage) || 1;
+    
+    if (currentPage < 1) currentPage = 1;
+    if (currentPage > totalPages) currentPage = totalPages;
+
+    const startIdx = (currentPage - 1) * rowsPerPage;
+    const endIdx = Math.min(startIdx + rowsPerPage, totalRows);
+
+    tableRows.forEach((row, idx) => {
+        if (idx >= startIdx && idx < endIdx) {
+            row.style.display = "";
+        } else {
+            row.style.display = "none";
+        }
+    });
+
+    updatePaginationUI(totalPages, totalRows, startIdx, endIdx);
+}
+
+function updatePaginationUI(totalPages, totalRows, startIdx, endIdx) {
+    const prevBtn = document.getElementById('prev-btn');
+    const nextBtn = document.getElementById('next-btn');
+    const pageNumbers = document.getElementById('page-numbers');
+    const infoText = document.getElementById('entries-info');
+
+    if (prevBtn) prevBtn.disabled = currentPage === 1;
+    if (nextBtn) nextBtn.disabled = currentPage === totalPages;
+
+    // Apply opacity styles for disabled state
+    if (prevBtn) {
+        if (currentPage === 1) prevBtn.classList.add('opacity-40', 'cursor-not-allowed');
+        else prevBtn.classList.remove('opacity-40', 'cursor-not-allowed');
+    }
+    if (nextBtn) {
+        if (currentPage === totalPages) nextBtn.classList.add('opacity-40', 'cursor-not-allowed');
+        else nextBtn.classList.remove('opacity-40', 'cursor-not-allowed');
+    }
+
+    if (infoText) {
+        if (totalRows === 0) {
+            infoText.innerText = "Tidak ada data";
+        } else {
+            infoText.innerText = `Menampilkan ${startIdx + 1}-${endIdx} dari ${totalRows} data`;
+        }
+    }
+
+    if (pageNumbers) {
+        pageNumbers.innerHTML = "";
+        let startPage = Math.max(1, currentPage - 2);
+        let endPage = Math.min(totalPages, startPage + 4);
+        if (endPage - startPage < 4) {
+            startPage = Math.max(1, endPage - 4);
+        }
+
+        for (let i = startPage; i <= endPage; i++) {
+            const btn = document.createElement('button');
+            btn.innerText = i;
+            btn.onclick = () => showPage(i);
+            btn.className = `w-8 h-8 rounded-lg text-xs font-black transition-all shadow-sm ${
+                currentPage === i 
+                    ? 'bg-brand-primary text-white shadow-brand-primary/20' 
+                    : 'border border-gray-100 bg-white text-gray-500 hover:text-brand-primary hover:border-brand-primary/20'
+            }`;
+            pageNumbers.appendChild(btn);
+        }
+    }
+}
+
+function prevPage() {
+    if (currentPage > 1) showPage(currentPage - 1);
+}
+
+function nextPage() {
+    const totalPages = Math.ceil(tableRows.length / rowsPerPage) || 1;
+    if (currentPage < totalPages) showPage(currentPage + 1);
+}
+
+function changeEntriesPerPage(val) {
+    rowsPerPage = parseInt(val);
+    showPage(1);
+}
+
+window.addEventListener('DOMContentLoaded', () => {
+    initPagination();
+});
 </script>
 <?php require 'views/admin/includes/footer.php'; ?>

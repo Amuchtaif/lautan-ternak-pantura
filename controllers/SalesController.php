@@ -16,11 +16,11 @@ class SalesController {
     private function checkAuth($role = null) {
         if (session_status() === PHP_SESSION_NONE) { session_start(); }
         if (!isset($_SESSION['user_id'])) {
-            header("Location: /lautan-ternak-pantura/auth/login");
+            header("Location: /lautan-ternak-pantura/auth/login?redirect=" . urlencode($_SERVER['REQUEST_URI']));
             exit;
         }
         if ($role && $_SESSION['role'] !== $role) {
-            header("Location: /lautan-ternak-pantura/auth/login");
+            header("Location: /lautan-ternak-pantura/auth/login?redirect=" . urlencode($_SERVER['REQUEST_URI']));
             exit;
         }
     }
@@ -179,7 +179,11 @@ class SalesController {
 
     // [CUSTOMER] Checkout page from catalog
     public function checkout($livestockId = null) {
-        $this->checkAuth('customer');
+        if (session_status() === PHP_SESSION_NONE) { session_start(); }
+        if (isset($_SESSION['user_id']) && $_SESSION['role'] !== 'customer') {
+            header("Location: /lautan-ternak-pantura/auth/login");
+            exit;
+        }
         if (!$livestockId) {
             header("Location: /lautan-ternak-pantura/marketplace");
             exit;
@@ -187,10 +191,13 @@ class SalesController {
 
         $db = $this->dbConnect();
         
-        // Load customer data
-        $userStmt = $db->prepare("SELECT full_name, name, phone, address, email FROM users WHERE id = ?");
-        $userStmt->execute([$_SESSION['user_id']]);
-        $userData = $userStmt->fetch(PDO::FETCH_ASSOC);
+        // Load customer data if logged in
+        $userData = null;
+        if (isset($_SESSION['user_id'])) {
+            $userStmt = $db->prepare("SELECT full_name, name, phone, address, email FROM users WHERE id = ?");
+            $userStmt->execute([$_SESSION['user_id']]);
+            $userData = $userStmt->fetch(PDO::FETCH_ASSOC);
+        }
 
         $livestockModel = new Livestock($db);
         $livestock = $livestockModel->getById($livestockId);
@@ -206,7 +213,11 @@ class SalesController {
 
     // [CUSTOMER] Process checkout post
     public function processCheckout() {
-        $this->checkAuth('customer');
+        if (session_status() === PHP_SESSION_NONE) { session_start(); }
+        if (isset($_SESSION['user_id']) && $_SESSION['role'] !== 'customer') {
+            header("Location: /lautan-ternak-pantura/auth/login");
+            exit;
+        }
         $db = $this->dbConnect();
 
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
@@ -219,6 +230,44 @@ class SalesController {
         $paymentType = $_POST['payment_type'] ?? 'lunas';
         $paymentAmount = floatval($_POST['payment_amount'] ?? 0);
         $notes = trim($_POST['notes'] ?? '');
+        $customerName = trim($_POST['customer_name'] ?? '');
+        $customerPhone = trim($_POST['customer_phone'] ?? '');
+
+        // If guest checkout, create/retrieve guest user and set session
+        if (!isset($_SESSION['user_id'])) {
+            if (empty($customerName) || empty($customerPhone)) {
+                $_SESSION['error'] = "Nama dan nomor WhatsApp wajib diisi.";
+                header("Location: /lautan-ternak-pantura/sales/checkout/" . $livestockId);
+                exit;
+            }
+
+            $guestEmail = 'guest_' . preg_replace('/[^0-9]/', '', $customerPhone) . '@guest.com';
+            if (empty($guestEmail) || $guestEmail === 'guest_@guest.com') {
+                $guestEmail = 'guest_' . bin2hex(random_bytes(4)) . '@guest.com';
+            }
+
+            $userStmt = $db->prepare("SELECT * FROM users WHERE email = ? LIMIT 1");
+            $userStmt->execute([$guestEmail]);
+            $guestUser = $userStmt->fetch(PDO::FETCH_ASSOC);
+
+            if ($guestUser) {
+                $customerId = $guestUser['id'];
+                $updateStmt = $db->prepare("UPDATE users SET name = ?, full_name = ?, phone = ?, address = ? WHERE id = ?");
+                $updateStmt->execute([$customerName, $customerName, $customerPhone, $notes, $customerId]);
+            } else {
+                $defaultPasswordHash = password_hash('password123', PASSWORD_BCRYPT);
+                $insertStmt = $db->prepare("INSERT INTO users (name, full_name, email, password, role, phone, address, status) VALUES (?, ?, ?, ?, 'customer', ?, ?, 'active')");
+                $insertStmt->execute([$customerName, $customerName, $guestEmail, $defaultPasswordHash, $customerPhone, $notes]);
+                $customerId = $db->lastInsertId();
+            }
+
+            $_SESSION['user_id'] = $customerId;
+            $_SESSION['role'] = 'customer';
+            $_SESSION['full_name'] = $customerName;
+            $_SESSION['name'] = $customerName;
+            $_SESSION['email'] = $guestEmail;
+            $_SESSION['is_login'] = true;
+        }
 
         try {
             $livestockModel = new Livestock($db);

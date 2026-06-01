@@ -28,9 +28,10 @@ class ReportController {
         $db = $this->dbConnect();
 
         $date = $_GET['date'] ?? date('Y-m-d');
+        $status = $_GET['status'] ?? '';
         
         $reportModel = new Report($db);
-        $summary = $reportModel->getDailySummary($date);
+        $summary = $reportModel->getDailySummary($date, $status);
 
         require 'views/admin/reports_daily.php';
     }
@@ -41,9 +42,10 @@ class ReportController {
         $db = $this->dbConnect();
 
         $month = $_GET['month'] ?? date('Y-m');
+        $status = $_GET['status'] ?? '';
 
         $reportModel = new Report($db);
-        $summary = $reportModel->getMonthlySummary($month);
+        $summary = $reportModel->getMonthlySummary($month, $status);
 
         require 'views/admin/reports_monthly.php';
     }

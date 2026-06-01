@@ -214,139 +214,6 @@ function authError($key) {
                         Masuk Sekarang
                     </button>
 
-                    <div class="text-center pt-2">
-                        <p class="text-gray-400 font-bold text-sm">
-                            Belum punya akun?
-                            <button type="button" onclick="toggleAuth()"
-                                class="text-brand-primary hover:underline ml-1 font-black">Daftar Akun Baru</button>
-                        </p>
-                    </div>
-                </form>
-            </div>
-
-            <!-- Register Content -->
-            <div id="register-content" class="form-transition hidden opacity-0 scale-95">
-                <h1 class="text-3xl font-black text-gray-900 mb-1 tracking-tight">Buat Akun</h1>
-                <p class="text-gray-400 mb-6 font-medium text-sm">Mulai perjalanan kurban sebagai Sohibul Qurban.</p>
-
-                <?php if (!empty($registerErrors['database']) || !empty($registerErrors['csrf'])): ?>
-                    <div class="mb-4 rounded-2xl bg-red-50 border border-red-100 text-red-600 px-5 py-4 text-xs font-black">
-                        <?php echo htmlspecialchars($registerErrors['database'] ?? $registerErrors['csrf']); ?>
-                    </div>
-                <?php endif; ?>
-
-                <form action="/lautan-ternak-pantura/api/auth/register" method="POST" class="space-y-4">
-                    <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken); ?>">
-                    <input type="hidden" name="redirect" id="register-redirect"
-                        value="<?php echo htmlspecialchars($redirectUrl); ?>">
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <div>
-                            <label
-                                class="block text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-2 ml-1">Nama
-                                Lengkap</label>
-                            <input type="text" name="full_name" value="<?php echo authOld('full_name', authOld('name')); ?>" placeholder="Nama Anda" required minlength="3"
-                                class="w-full px-5 py-5 bg-gray-50 border-2 border-transparent focus:border-brand-primary/10 focus:bg-white rounded-2xl outline-none transition-all text-gray-700 font-bold">
-                            <?php echo authError('full_name'); ?>
-                        </div>
-                        <div>
-                            <label
-                                class="block text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-2 ml-1">Jenis Kelamin</label>
-                            <select name="gender" required
-                                class="w-full px-5 py-5 bg-gray-50 border-2 border-transparent focus:border-brand-primary/10 focus:bg-white rounded-2xl outline-none transition-all text-gray-700 font-black cursor-pointer">
-                                <option value="">Pilih</option>
-                                <option value="male" <?php echo authOld('gender') === 'male' ? 'selected' : ''; ?>>Laki-laki</option>
-                                <option value="female" <?php echo authOld('gender') === 'female' ? 'selected' : ''; ?>>Perempuan</option>
-                            </select>
-                            <?php echo authError('gender'); ?>
-                        </div>
-                    </div>
-
-                    <div>
-                        <label
-                            class="block text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-2 ml-1">Alamat
-                            Email</label>
-                        <input type="email" name="email" value="<?php echo authOld('email'); ?>" placeholder="email@contoh.com" required
-                            class="w-full px-5 py-5 bg-gray-50 border-2 border-transparent focus:border-brand-primary/10 focus:bg-white rounded-2xl outline-none transition-all text-gray-700 font-bold">
-                        <?php echo authError('email'); ?>
-                    </div>
-
-                    <div>
-                        <label
-                            class="block text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-2 ml-1">Nomor WhatsApp</label>
-                        <input type="tel" name="phone" value="<?php echo authOld('phone'); ?>" placeholder="08xxxxxxxxxx" required pattern="[0-9]{10,}"
-                            class="w-full px-5 py-5 bg-gray-50 border-2 border-transparent focus:border-brand-primary/10 focus:bg-white rounded-2xl outline-none transition-all text-gray-700 font-bold">
-                        <?php echo authError('phone'); ?>
-                    </div>
-
-                    <div>
-                        <label
-                            class="block text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-2 ml-1">Alamat Lengkap</label>
-                        <textarea name="address" rows="2" placeholder="Alamat lengkap" required
-                            class="w-full px-5 py-5 bg-gray-50 border-2 border-transparent focus:border-brand-primary/10 focus:bg-white rounded-2xl outline-none transition-all text-gray-700 font-bold resize-none"><?php echo authOld('address'); ?></textarea>
-                        <?php echo authError('address'); ?>
-                    </div>
-
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <div>
-                            <label
-                                class="block text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-2 ml-1">Kota</label>
-                            <input type="text" name="city" value="<?php echo authOld('city'); ?>" placeholder="Cirebon" required
-                                class="w-full px-5 py-5 bg-gray-50 border-2 border-transparent focus:border-brand-primary/10 focus:bg-white rounded-2xl outline-none transition-all text-gray-700 font-bold">
-                            <?php echo authError('city'); ?>
-                        </div>
-                        <div>
-                            <label
-                                class="block text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-2 ml-1">Provinsi</label>
-                            <input type="text" name="province" value="<?php echo authOld('province'); ?>" placeholder="Jawa Barat" required
-                                class="w-full px-5 py-5 bg-gray-50 border-2 border-transparent focus:border-brand-primary/10 focus:bg-white rounded-2xl outline-none transition-all text-gray-700 font-bold">
-                            <?php echo authError('province'); ?>
-                        </div>
-                    </div>
-
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <div>
-                        <label
-                            class="block text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-2 ml-1">Kata
-                            Sandi Baru</label>
-                        <div class="relative">
-                            <input type="password" id="register-password" name="password"
-                                placeholder="Minimal 8 karakter" required minlength="8"
-                                class="w-full px-5 pr-14 py-5 bg-gray-50 border-2 border-transparent focus:border-brand-primary/10 focus:bg-white rounded-2xl outline-none transition-all text-gray-700 font-bold">
-                            <button type="button" onclick="togglePassword('register-password')"
-                                class="absolute right-5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-brand-primary transition-colors px-1">
-                                <i class="far fa-eye text-lg" id="eye-register-password"></i>
-                            </button>
-                        </div>
-                        <?php echo authError('password'); ?>
-                        </div>
-                        <div>
-                        <label
-                            class="block text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-2 ml-1">Konfirmasi</label>
-                        <div class="relative">
-                            <input type="password" id="register-password-confirm" name="password_confirm"
-                                placeholder="Ulangi password" required minlength="8"
-                                class="w-full px-5 pr-14 py-5 bg-gray-50 border-2 border-transparent focus:border-brand-primary/10 focus:bg-white rounded-2xl outline-none transition-all text-gray-700 font-bold">
-                            <button type="button" onclick="togglePassword('register-password-confirm')"
-                                class="absolute right-5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-brand-primary transition-colors px-1">
-                                <i class="far fa-eye text-lg" id="eye-register-password-confirm"></i>
-                            </button>
-                        </div>
-                        <?php echo authError('password_confirm'); ?>
-                        </div>
-                    </div>
-
-                    <button type="submit"
-                        class="w-full bg-brand-primary text-white py-5 rounded-2xl font-black text-lg shadow-xl shadow-brand-primary/20 hover:bg-brand-dark transition-all transform active:scale-95 mt-4">
-                        Daftar Sekarang
-                    </button>
-
-                    <div class="text-center pt-4">
-                        <p class="text-gray-400 font-bold text-sm">
-                            Sudah punya akun?
-                            <button type="button" onclick="toggleAuth()"
-                                class="text-brand-primary hover:underline ml-1 font-black">Masuk Sekarang</button>
-                        </p>
-                    </div>
                 </form>
             </div>
         </div>
@@ -379,59 +246,11 @@ function authError($key) {
                 </div>
             </div>
         </div>
-
     </div>
 
     <script>
         const urlParams = new URLSearchParams(window.location.search);
-        const initialAction = urlParams.get('action');
-        let isLogin = initialAction !== 'register';
         const redirectParam = urlParams.get('redirect') || '';
-
-        const mainContainer = document.getElementById('main-container');
-        const loginContent = document.getElementById('login-content');
-        const registerContent = document.getElementById('register-content');
-
-        // Apply Initial State
-        if (!isLogin) {
-            applyState(false);
-            loginContent.classList.add('hidden', 'opacity-0', 'scale-95');
-            loginContent.classList.remove('opacity-100', 'scale-100');
-            registerContent.classList.remove('hidden', 'opacity-0', 'scale-95');
-            registerContent.classList.add('opacity-100', 'scale-100');
-        }
-
-        function toggleAuth() {
-            isLogin = !isLogin;
-            const activeContent = isLogin ? registerContent : loginContent;
-            const targetContent = isLogin ? loginContent : registerContent;
-
-            activeContent.classList.add('opacity-0', 'scale-95');
-
-            setTimeout(() => {
-                activeContent.classList.add('hidden');
-                targetContent.classList.remove('hidden');
-
-                // Sync redirect hidden input on register form
-                const redirectInput = document.getElementById('register-redirect');
-                if (redirectInput) redirectInput.value = redirectParam;
-
-                applyState(isLogin);
-
-                setTimeout(() => {
-                    targetContent.classList.remove('opacity-0', 'scale-95');
-                    targetContent.classList.add('opacity-100', 'scale-100');
-                }, 50);
-            }, 400);
-        }
-
-        function applyState(loginMode) {
-            if (window.innerWidth >= 768) {
-                mainContainer.style.flexDirection = loginMode ? 'row-reverse' : 'row';
-            } else {
-                mainContainer.style.flexDirection = 'column';
-            }
-        }
 
         function togglePassword(inputId) {
             const passwordInput = document.getElementById(inputId);
@@ -457,8 +276,6 @@ function authError($key) {
                 showToast("Akun uji coba berhasil diisi! Silakan tekan 'Masuk Sekarang'.", "info");
             }
         }
-
-        window.addEventListener('resize', () => applyState(isLogin));
     </script>
 </body>
 

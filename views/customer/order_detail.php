@@ -3,18 +3,60 @@ if (session_status() === PHP_SESSION_NONE) { session_start(); }
 require_once __DIR__ . '/../../includes/header.php'; 
 ?>
 
+<style>
+@media print {
+    /* Hide global web elements */
+    header, footer, nav, .no-print, .no-print * {
+        display: none !important;
+        visibility: hidden !important;
+        height: 0 !important;
+        padding: 0 !important;
+        margin: 0 !important;
+    }
+    body {
+        background-color: white !important;
+    }
+    body * {
+        visibility: hidden;
+    }
+    #invoice-print-area, #invoice-print-area * {
+        visibility: visible;
+    }
+    #invoice-print-area {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 100%;
+        margin: 0 !important;
+        padding: 0 !important;
+        background: white !important;
+    }
+}
+</style>
+
 <div class="bg-gray-50 min-h-screen py-12">
-    <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8" id="invoice-print-area">
         
         <!-- Header -->
-        <div class="mb-10 flex items-center gap-4">
-            <a href="/lautan-ternak-pantura/sales/my_orders" class="w-10 h-10 rounded-full bg-white flex items-center justify-center text-gray-400 hover:text-gray-700 hover:shadow-md transition-all shrink-0">
-                <i class="fas fa-arrow-left"></i>
-            </a>
-            <div>
-                <h1 class="text-3xl font-black text-gray-900 tracking-tight">Detail <span class="text-brand-primary">Transaksi</span></h1>
-                <p class="text-xs text-gray-400 font-bold uppercase tracking-widest mt-1">Invoice: #<?php echo htmlspecialchars($sale['invoice_code']); ?></p>
+        <div class="mb-10 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 no-print">
+            <div class="flex items-center gap-4">
+                <a href="/lautan-ternak-pantura/sales/my_orders" class="w-10 h-10 rounded-full bg-white flex items-center justify-center text-gray-400 hover:text-gray-700 hover:shadow-md transition-all shrink-0">
+                    <i class="fas fa-arrow-left"></i>
+                </a>
+                <div>
+                    <h1 class="text-3xl font-black text-gray-900 tracking-tight">Detail <span class="text-brand-primary">Transaksi</span></h1>
+                    <p class="text-xs text-gray-400 font-bold uppercase tracking-widest mt-1">Invoice: #<?php echo htmlspecialchars($sale['invoice_code']); ?></p>
+                </div>
             </div>
+            <button onclick="window.print()" class="bg-white text-gray-700 border border-gray-200 px-6 py-3.5 rounded-2xl shadow-sm hover:bg-gray-50 hover:shadow-md transition-all text-xs font-black uppercase tracking-widest flex items-center gap-2">
+                <i class="fas fa-download text-brand-primary"></i> Cetak / Download Invoice
+            </button>
+        </div>
+
+        <!-- Print Header (Only visible on print) -->
+        <div class="hidden print:block border-b-2 border-gray-200 pb-5 mb-8">
+            <h1 class="text-3xl font-black text-gray-900">INVOICE PENJUALAN</h1>
+            <p class="text-sm font-bold text-gray-500 mt-1">Lautan Ternak Pantura &bull; #<?php echo htmlspecialchars($sale['invoice_code']); ?></p>
         </div>
 
         <!-- Session Message Alerts -->
@@ -160,7 +202,7 @@ require_once __DIR__ . '/../../includes/header.php';
 
                 <!-- Add New Payment Form (Installment / Settlement) -->
                 <?php if ($remaining > 0): ?>
-                    <div class="bg-white rounded-3xl shadow-sm border border-gray-100 p-8 space-y-6">
+                    <div class="no-print bg-white rounded-3xl shadow-sm border border-gray-100 p-8 space-y-6">
                         <h3 class="text-lg font-black text-gray-900 tracking-tight flex items-center gap-2">
                             <i class="fas fa-paper-plane text-brand-primary"></i> Unggah Bukti Cicilan / Pelunasan
                         </h3>
@@ -171,8 +213,8 @@ require_once __DIR__ . '/../../includes/header.php';
                             <div class="flex items-center gap-4">
                                 <img src="https://upload.wikimedia.org/wikipedia/commons/5/5c/Bank_Central_Asia.svg" class="h-6 w-auto">
                                 <div>
-                                    <p class="text-base font-black text-gray-900">8610 9928 11</p>
-                                    <p class="text-[10px] font-bold text-gray-500 uppercase tracking-widest">A/N LAUTAN TERNAK PANTURA</p>
+                                    <p class="text-base font-black text-gray-900">1341699695</p>
+                                    <p class="text-[10px] font-bold text-gray-500 uppercase tracking-widest">A/N Shohibudin</p>
                                 </div>
                             </div>
                             <div class="text-xs text-gray-500 leading-relaxed font-semibold">
@@ -234,7 +276,7 @@ require_once __DIR__ . '/../../includes/header.php';
                                 </div>
                             </div>
 
-                            <button type="submit" class="w-full bg-brand-primary text-white py-4.5 rounded-2xl font-black text-sm shadow-xl shadow-brand-primary/20 hover:bg-brand-dark transition-all flex items-center justify-center gap-3">
+                            <button type="submit" class="w-full bg-brand-primary text-white py-5 rounded-2xl font-black text-sm shadow-xl shadow-brand-primary/20 hover:bg-brand-dark transition-all flex items-center justify-center gap-3">
                                 <i class="fas fa-check-circle"></i> Kirim Konfirmasi Pembayaran
                             </button>
                         </form>
@@ -275,7 +317,7 @@ require_once __DIR__ . '/../../includes/header.php';
                             </span>
                         </div>
                         <div class="flex justify-between items-center border-t border-gray-50 pt-4">
-                            <span>Harga Snapshot</span>
+                            <span>Harga Hewan</span>
                             <span class="text-gray-800">Rp <?php echo number_format($sale['selling_price_snapshot'], 0, ',', '.'); ?></span>
                         </div>
                         <div class="flex justify-between items-center">

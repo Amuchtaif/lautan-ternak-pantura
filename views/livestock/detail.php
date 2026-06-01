@@ -84,7 +84,7 @@
                         <?php endif; ?>
                         
                         <a href="/lautan-ternak-pantura/tabungan#form-registrasi" class="flex-1 inline-flex justify-center items-center gap-2 bg-white text-brand-primary border-2 border-brand-primary py-4 px-6 rounded-2xl hover:bg-brand-light/20 transition-all font-black text-sm uppercase tracking-widest">
-                            <i class="fas fa-piggy-bank"></i> Program Tabungan
+                            <i class="fas fa-paw"></i> Program Tabungan
                         </a>
                     </div>
                 </div>

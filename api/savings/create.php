@@ -117,7 +117,7 @@ try {
     }
 
     $conn->commit();
-    header('Location: /lautan-ternak-pantura/savings/detail/' . $planId . '?success=plan_created');
+    header('Location: /lautan-ternak-pantura/customer/dashboard?success=plan_created');
 } catch (Throwable $e) {
     if (isset($conn) && $conn->inTransaction()) {
         $conn->rollBack();

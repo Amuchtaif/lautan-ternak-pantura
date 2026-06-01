@@ -153,7 +153,13 @@ class PurchaseController {
                     $code = 'LTP-LIV-' . time() . rand(10, 99);
 
                     // Combine breed and name
-                    $breedDbValue = ucfirst($breed) . ' ' . $livestockName;
+                    $breedLower = strtolower($breed);
+                    $nameLower = strtolower($livestockName);
+                    if (strpos($nameLower, $breedLower) === 0) {
+                        $breedDbValue = ucfirst($livestockName);
+                    } else {
+                        $breedDbValue = ucfirst($breed) . ' ' . $livestockName;
+                    }
 
                     $livestockData = [
                         'livestock_code' => $code,

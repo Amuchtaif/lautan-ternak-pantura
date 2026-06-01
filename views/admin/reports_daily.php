@@ -20,10 +20,19 @@ require_once 'views/admin/includes/sidebar.php';
                 <p class="text-xs text-gray-400 font-bold uppercase tracking-widest mt-1">Pantau performa penjualan, pesanan masuk, dan pendapatan harian</p>
             </div>
             
-            <!-- Date Filter -->
-            <form method="GET" action="/lautan-ternak-pantura/report/daily" class="flex items-center gap-3 bg-white p-2.5 rounded-2xl border border-gray-100 shadow-sm">
+            <!-- Date & Status Filter -->
+            <form method="GET" action="/lautan-ternak-pantura/report/daily" class="flex flex-wrap items-center gap-3 bg-white p-2.5 rounded-2xl border border-gray-100 shadow-sm">
                 <div class="relative">
-                    <input type="date" name="date" value="<?php echo htmlspecialchars($date); ?>" class="pl-4 pr-10 py-2.5 bg-gray-50 border border-gray-100 rounded-xl outline-none font-bold text-sm text-gray-700">
+                    <input type="date" name="date" value="<?php echo htmlspecialchars($date); ?>" class="pl-4 pr-4 py-2.5 bg-gray-50 border border-gray-100 rounded-xl outline-none font-bold text-sm text-gray-700">
+                </div>
+                <div class="relative">
+                    <select name="status" class="px-4 py-2.5 bg-gray-50 border border-gray-100 rounded-xl outline-none font-bold text-sm text-gray-700">
+                        <option value="" <?php echo $status === '' ? 'selected' : ''; ?>>Semua Status</option>
+                        <option value="pending" <?php echo $status === 'pending' ? 'selected' : ''; ?>>Pending</option>
+                        <option value="processing" <?php echo $status === 'processing' ? 'selected' : ''; ?>>Diproses</option>
+                        <option value="completed" <?php echo $status === 'completed' ? 'selected' : ''; ?>>Selesai</option>
+                        <option value="cancelled" <?php echo $status === 'cancelled' ? 'selected' : ''; ?>>Dibatalkan</option>
+                    </select>
                 </div>
                 <button type="submit" class="bg-brand-primary hover:bg-brand-dark text-white px-5 py-2.5 rounded-xl font-black text-xs uppercase tracking-widest transition-all">
                     Filter
@@ -33,36 +42,36 @@ require_once 'views/admin/includes/sidebar.php';
 
         <!-- Metric Cards -->
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            <!-- Pendapatan Penjualan Card -->
+            <!-- Total Penjualan Card -->
             <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-100/50 flex items-center group hover:shadow-xl transition-all duration-300">
-                <div class="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-lg shrink-0 group-hover:scale-110 transition-transform">
+                <div class="w-12 h-12 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center text-lg shrink-0 group-hover:scale-110 transition-transform">
                     <i class="fas fa-money-bill-wave"></i>
                 </div>
                 <div class="ml-4">
-                    <p class="text-[10px] text-gray-400 font-black uppercase tracking-widest mb-1">Pendapatan Penjualan</p>
-                    <p class="text-lg font-black text-gray-900">Rp <?php echo number_format($summary['total_revenue'], 0, ',', '.'); ?></p>
-                    <span class="text-[9px] text-emerald-600 font-bold bg-emerald-50 px-1.5 py-0.5 rounded">Kas Masuk Terverifikasi</span>
+                    <p class="text-[10px] text-gray-400 font-black uppercase tracking-widest mb-1">Total Penjualan</p>
+                    <p class="text-lg font-black text-gray-900">Rp <?php echo number_format($summary['total_sales'], 0, ',', '.'); ?></p>
+                    <span class="text-[9px] text-blue-600 font-bold bg-blue-50 px-1.5 py-0.5 rounded">Total Nilai Penjualan</span>
                 </div>
             </div>
 
-            <!-- Pengeluaran Pembelian Card -->
+            <!-- Total Modal Pembelian Card -->
             <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-100/50 flex items-center group hover:shadow-xl transition-all duration-300">
                 <div class="w-12 h-12 rounded-2xl bg-rose-50 text-rose-600 flex items-center justify-center text-lg shrink-0 group-hover:scale-110 transition-transform">
                     <i class="fas fa-shopping-cart"></i>
                 </div>
                 <div class="ml-4">
-                    <p class="text-[10px] text-gray-400 font-black uppercase tracking-widest mb-1">Pengeluaran Pembelian</p>
-                    <p class="text-lg font-black text-gray-900">Rp <?php echo number_format($summary['purchase_expense'], 0, ',', '.'); ?></p>
-                    <span class="text-[9px] text-rose-600 font-bold bg-rose-50 px-1.5 py-0.5 rounded">Kas Keluar Beli Ternak</span>
+                    <p class="text-[10px] text-gray-400 font-black uppercase tracking-widest mb-1">Total Modal Pembelian</p>
+                    <p class="text-lg font-black text-gray-900">Rp <?php echo number_format($summary['total_purchase_cost'], 0, ',', '.'); ?></p>
+                    <span class="text-[9px] text-rose-600 font-bold bg-rose-50 px-1.5 py-0.5 rounded">Modal Beli Stok Ternak</span>
                 </div>
             </div>
 
-            <!-- Laba / Rugi Bersih Card -->
+            <!-- Total Margin Keuntungan Card -->
             <?php
-            $marginIsNegative = $summary['net_margin'] < 0;
+            $marginIsNegative = $summary['total_margin'] < 0;
             $marginBg = $marginIsNegative ? 'bg-rose-50' : 'bg-emerald-50';
             $marginText = $marginIsNegative ? 'text-rose-600' : 'text-emerald-600';
-            $marginLabel = $marginIsNegative ? 'Rugi Bersih' : 'Laba Bersih';
+            $marginLabel = 'Margin Keuntungan';
             $marginIcon = $marginIsNegative ? 'fa-arrow-trend-down' : 'fa-arrow-trend-up';
             ?>
             <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-100/50 flex items-center group hover:shadow-xl transition-all duration-300">
@@ -72,29 +81,21 @@ require_once 'views/admin/includes/sidebar.php';
                 <div class="ml-4">
                     <p class="text-[10px] text-gray-400 font-black uppercase tracking-widest mb-1"><?php echo $marginLabel; ?></p>
                     <p class="text-lg font-black <?php echo $marginIsNegative ? 'text-rose-600' : 'text-gray-900'; ?>">
-                        <?php echo ($marginIsNegative ? '-' : '') . 'Rp ' . number_format(abs($summary['net_margin']), 0, ',', '.'); ?>
+                        <?php echo ($marginIsNegative ? '-' : '') . 'Rp ' . number_format(abs($summary['total_margin']), 0, ',', '.'); ?>
                     </p>
-                    <span class="text-[9px] <?php echo $marginText; ?> font-bold <?php echo $marginBg; ?> px-1.5 py-0.5 rounded">Selisih Kas Masuk & Keluar</span>
+                    <span class="text-[9px] <?php echo $marginText; ?> font-bold <?php echo $marginBg; ?> px-1.5 py-0.5 rounded">Selisih Harga Jual & Beli</span>
                 </div>
             </div>
 
-            <!-- Utang & Piutang Dagang Card -->
+            <!-- Total Transaksi Card -->
             <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-100/50 flex items-center group hover:shadow-xl transition-all duration-300">
-                <div class="w-12 h-12 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center text-lg shrink-0 group-hover:scale-110 transition-transform">
-                    <i class="fas fa-balance-scale"></i>
+                <div class="w-12 h-12 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center text-lg shrink-0 group-hover:scale-110 transition-transform">
+                    <i class="fas fa-box"></i>
                 </div>
-                <div class="ml-4 flex-grow">
-                    <p class="text-[10px] text-gray-400 font-black uppercase tracking-widest mb-2 border-b border-gray-50 pb-1">Utang & Piutang Dagang</p>
-                    <div class="space-y-1">
-                        <div class="flex justify-between items-center text-xs">
-                            <span class="text-gray-400 font-bold text-[9px] mr-2">Piutang (Sales):</span>
-                            <span class="font-black text-gray-800">Rp <?php echo number_format($summary['total_receivables'], 0, ',', '.'); ?></span>
-                        </div>
-                        <div class="flex justify-between items-center text-xs border-t border-gray-50/50 pt-1">
-                            <span class="text-gray-400 font-bold text-[9px] mr-2">Utang (Breeder):</span>
-                            <span class="font-black text-gray-800">Rp <?php echo number_format($summary['total_payables'], 0, ',', '.'); ?></span>
-                        </div>
-                    </div>
+                <div class="ml-4">
+                    <p class="text-[10px] text-gray-400 font-black uppercase tracking-widest mb-1">Total Transaksi</p>
+                    <p class="text-lg font-black text-gray-900"><?php echo number_format($summary['total_transactions'], 0, ',', '.'); ?> Transaksi</p>
+                    <span class="text-[9px] text-amber-600 font-bold bg-amber-50 px-1.5 py-0.5 rounded">Jumlah Penjualan</span>
                 </div>
             </div>
         </div>
@@ -120,7 +121,7 @@ require_once 'views/admin/includes/sidebar.php';
                                 <?php if (empty($summary['top_selling'])): ?>
                                     <tr>
                                         <td colspan="4" class="px-8 py-10 text-center text-gray-400 font-bold">
-                                            Belum ada penjualan lunas hari ini.
+                                            Belum ada data penjualan hari ini.
                                         </td>
                                     </tr>
                                 <?php else: ?>

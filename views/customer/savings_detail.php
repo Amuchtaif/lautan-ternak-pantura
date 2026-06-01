@@ -3,7 +3,7 @@
     <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
         <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
-                <a href="/lautan-ternak-pantura/savings" class="text-sm font-bold text-brand-primary"><i class="fas fa-arrow-left mr-2"></i>Dashboard Tabungan</a>
+                <a href="/lautan-ternak-pantura/customer/dashboard" class="text-sm font-bold text-brand-primary"><i class="fas fa-arrow-left mr-2"></i>Dashboard Tabungan</a>
                 <h1 class="text-2xl font-black text-gray-900 mt-3"><?php echo htmlspecialchars($plan['livestock_target']); ?></h1>
                 <p class="text-sm text-gray-500"><?php echo htmlspecialchars($plan['plan_code']); ?> - Target <?php echo date('d M Y', strtotime($plan['target_date'])); ?></p>
             </div>

@@ -11,10 +11,10 @@ $minTargetDate = date('Y-m-d', strtotime('+1 month'));
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="max-w-3xl">
                 <p class="text-sm font-black text-brand-primary uppercase tracking-[0.22em] mb-4">Program Tabungan Qurban</p>
-                <h1 class="text-4xl sm:text-5xl lg:text-6xl font-black text-gray-900 leading-tight">Daftar tabungan qurban dalam satu halaman.</h1>
+                <h1 class="text-4xl sm:text-5xl lg:text-6xl font-black text-gray-900 leading-tight">Daftar tabungan qurban bersama kami.</h1>
                 <p class="mt-6 text-lg text-gray-600 leading-relaxed">Pilih hewan dari katalog aktif atau tentukan nominal manual, buat akun sendiri, lihat simulasi cicilan realtime, lalu langsung masuk ke dashboard tabungan.</p>
                 <a href="#form-registrasi" class="mt-8 inline-flex items-center justify-center gap-3 rounded-full bg-brand-primary px-8 py-4 text-white font-black hover:bg-brand-dark transition">
-                    <i class="fas fa-piggy-bank"></i> Daftar Tabungan Qurban
+                    <i class="fas fa-paw"></i> Daftar Tabungan Qurban
                 </a>
             </div>
         </div>
@@ -66,22 +66,18 @@ $minTargetDate = date('Y-m-d', strtotime('+1 month'));
             <form id="tabungan-register-form" action="/lautan-ternak-pantura/api/savings/register" method="POST" enctype="multipart/form-data" class="grid lg:grid-cols-12 gap-6" novalidate>
                 <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token'] ?? ''); ?>">
                 <input type="hidden" name="duration_month" id="duration_month" value="10">
+                <input type="hidden" name="initial_deposit" id="initial_deposit" value="0">
+                <input type="hidden" name="payment_method" value="cash">
+                <input type="hidden" name="target_date" id="target_date" value="<?php echo $defaultTargetDate; ?>">
 
                 <div class="lg:col-span-7 space-y-6">
                     <div class="rounded-2xl border border-gray-100 bg-white p-6">
-                        <h3 class="text-xl font-black text-gray-900 mb-5">Data Pribadi</h3>
+                        <h3 class="text-xl font-black text-gray-900 mb-5">Data Pribadi dan Akun</h3>
                         <div class="grid md:grid-cols-2 gap-4">
                             <div><input name="full_name" required placeholder="Nama lengkap" class="form-field w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 outline-none focus:border-brand-primary"><p data-error-for="full_name" class="mt-1 text-xs font-bold text-red-600 hidden"></p></div>
                             <div><input name="phone" required placeholder="No HP / WhatsApp" class="form-field w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 outline-none focus:border-brand-primary"><p data-error-for="phone" class="mt-1 text-xs font-bold text-red-600 hidden"></p></div>
-                            <div class="md:col-span-2"><input name="email" type="email" placeholder="Email (opsional)" class="form-field w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 outline-none focus:border-brand-primary"><p data-error-for="email" class="mt-1 text-xs font-bold text-red-600 hidden"></p></div>
+                            <div class="md:col-span-2"><input name="email" type="email" required placeholder="Alamat Email" class="form-field w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 outline-none focus:border-brand-primary"><p data-error-for="email" class="mt-1 text-xs font-bold text-red-600 hidden"></p></div>
                             <div class="md:col-span-2"><textarea name="address" required rows="3" placeholder="Alamat lengkap" class="form-field w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 outline-none focus:border-brand-primary resize-none"></textarea><p data-error-for="address" class="mt-1 text-xs font-bold text-red-600 hidden"></p></div>
-                        </div>
-                    </div>
-
-                    <div class="rounded-2xl border border-gray-100 bg-white p-6">
-                        <h3 class="text-xl font-black text-gray-900 mb-5">Data Akun Login</h3>
-                        <div class="grid md:grid-cols-3 gap-4">
-                            <div><input name="username" required minlength="4" pattern="[A-Za-z0-9._-]{4,50}" placeholder="Username" class="form-field w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 outline-none focus:border-brand-primary"><p data-error-for="username" class="mt-1 text-xs font-bold text-red-600 hidden"></p></div>
                             <div><input name="password" required minlength="8" type="password" placeholder="Password" class="form-field w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 outline-none focus:border-brand-primary"><p data-error-for="password" class="mt-1 text-xs font-bold text-red-600 hidden"></p></div>
                             <div><input name="password_confirm" required minlength="8" type="password" placeholder="Konfirmasi password" class="form-field w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 outline-none focus:border-brand-primary"><p data-error-for="password_confirm" class="mt-1 text-xs font-bold text-red-600 hidden"></p></div>
                         </div>
@@ -125,7 +121,8 @@ $minTargetDate = date('Y-m-d', strtotime('+1 month'));
                             <div class="grid sm:grid-cols-2 gap-4">
                                 <div>
                                     <label class="block text-xs font-black text-gray-500 uppercase mb-2">Target Nominal (Rp)</label>
-                                    <input type="number" name="manual_target_amount" id="manual_target_amount" min="100000" step="50000" value="<?php echo !empty($livestocks) ? (int)$livestocks[0]['price'] : 3500000; ?>" class="form-field w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 outline-none focus:border-brand-primary">
+                                    <input type="number" id="manual_target_amount" disabled value="<?php echo !empty($livestocks) ? (int)$livestocks[0]['price'] : 3500000; ?>" class="form-field w-full px-4 py-3 rounded-xl bg-gray-100 border border-gray-200 outline-none cursor-not-allowed text-gray-500">
+                                    <input type="hidden" name="manual_target_amount" id="hidden_manual_target_amount" value="<?php echo !empty($livestocks) ? (int)$livestocks[0]['price'] : 3500000; ?>">
                                     <p data-error-for="manual_target_amount" class="mt-1 text-xs font-bold text-red-600 hidden"></p>
                                 </div>
                                 <div>
@@ -139,33 +136,6 @@ $minTargetDate = date('Y-m-d', strtotime('+1 month'));
                         </div>
                     </div>
 
-                    <div class="rounded-2xl border border-gray-100 bg-white p-6">
-                        <h3 class="text-xl font-black text-gray-900 mb-5">Data Tabungan</h3>
-                        <div class="grid md:grid-cols-3 gap-4">
-                            <div><input type="date" name="target_date" id="target_date" min="<?php echo $minTargetDate; ?>" value="<?php echo $defaultTargetDate; ?>" required class="form-field w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 outline-none focus:border-brand-primary"><p data-error-for="target_date" class="mt-1 text-xs font-bold text-red-600 hidden"></p></div>
-                            <div>
-                                <input type="text" id="initial_deposit_display" value="Rp 100.000" required placeholder="Nominal awal" class="form-field w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 outline-none focus:border-brand-primary">
-                                <input type="hidden" name="initial_deposit" id="initial_deposit" value="100000">
-                                <p data-error-for="initial_deposit" class="mt-1 text-xs font-bold text-red-600 hidden"></p>
-                            </div>
-                            <div><select name="payment_method" required class="form-field w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 outline-none focus:border-brand-primary">
-                                    <option value="transfer_bank">Transfer Bank</option>
-                                    <option value="cash">Tunai</option>
-                                </select><p data-error-for="payment_method" class="mt-1 text-xs font-bold text-red-600 hidden"></p></div>
-                        </div>
-                        <div id="transfer-info" class="mt-5 rounded-2xl border border-blue-100 bg-blue-50 p-5">
-                            <p class="text-xs font-black uppercase tracking-widest text-blue-500">Info Transfer</p>
-                            <p class="mt-2 font-black text-gray-900">Bank BCA</p>
-                            <p class="text-sm text-gray-700">a.n Sohibuddin</p>
-                            <p class="text-sm text-gray-700">No Rekening: <span class="font-black">1341699695</span></p>
-                        </div>
-                        <div id="proof-field" class="mt-5">
-                            <label class="block text-xs font-black uppercase text-gray-500 mb-2">Upload Bukti Transfer (jpg/png/webp, maks 2MB)</label>
-                            <input type="file" name="payment_proof" id="payment_proof" accept="image/jpeg,image/png,image/webp" class="form-field w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3">
-                            <p data-error-for="payment_proof" class="mt-1 text-xs font-bold text-red-600 hidden"></p>
-                            <img id="proof-preview" src="" alt="Preview bukti transfer" class="mt-4 hidden max-h-56 w-full rounded-2xl border border-gray-100 object-contain bg-gray-50">
-                        </div>
-                    </div>
                 </div>
 
                 <aside class="lg:col-span-5">
@@ -175,15 +145,15 @@ $minTargetDate = date('Y-m-d', strtotime('+1 month'));
                         <div class="grid grid-cols-2 gap-3 mt-6">
                             <div class="rounded-xl bg-gray-50 p-4"><p class="text-xs font-bold text-gray-500">Target</p><p id="target-preview" class="font-black text-gray-900 mt-1">Rp 0</p></div>
                             <div class="rounded-xl bg-gray-50 p-4"><p class="text-xs font-bold text-gray-500">Tenor</p><p id="tenor-preview" class="font-black text-gray-900 mt-1">0 bulan</p></div>
-                            <div class="rounded-xl bg-gray-50 p-4"><p class="text-xs font-bold text-gray-500">Awal</p><p id="deposit-preview" class="font-black text-gray-900 mt-1">Rp 0</p></div>
-                            <div class="rounded-xl bg-gray-50 p-4"><p class="text-xs font-bold text-gray-500">Progress</p><p id="progress-preview" class="font-black text-gray-900 mt-1">0%</p></div>
                         </div>
-                        <div class="mt-5 rounded-2xl bg-brand-primary p-5 text-white">
-                            <p class="text-sm text-blue-100 font-semibold">Estimasi setoran bulanan</p>
-                            <p id="monthly-preview" class="text-3xl font-black mt-1">Rp 0</p>
-                            <p id="remaining-preview" class="text-xs text-blue-100 mt-2">Sisa target Rp 0</p>
+                        <div class="mt-5 rounded-2xl bg-gradient-to-br from-brand-primary to-brand-dark p-6 text-white shadow-xl shadow-brand-primary/20">
+                            <div class="flex items-center gap-3 mb-2">
+                                <span class="flex h-8 w-8 items-center justify-center rounded-lg bg-white/20 text-white"><i class="fas fa-coins text-xs"></i></span>
+                                <p class="text-xs text-blue-100 font-black uppercase tracking-wider">Estimasi Setoran Bulanan</p>
+                            </div>
+                            <p id="monthly-preview" class="text-4xl font-black mt-1">Rp 0</p>
+                            <p id="remaining-preview" class="text-xs text-blue-100/80 mt-2 font-medium">Sisa target Rp 0</p>
                         </div>
-                        <div class="mt-5 h-3 rounded-full bg-gray-100 overflow-hidden"><div id="progress-bar" class="h-full bg-brand-primary rounded-full" style="width:0%"></div></div>
                         <div id="form-error-summary" class="mt-5 hidden rounded-xl bg-red-50 border border-red-100 p-4 text-sm font-bold text-red-700"></div>
                         <button id="submit-tabungan-btn" type="submit" class="mt-6 w-full rounded-xl bg-brand-primary py-4 text-white font-black hover:bg-brand-dark transition disabled:opacity-60 disabled:cursor-not-allowed">
                             Submit dan Masuk Dashboard
@@ -198,13 +168,13 @@ $minTargetDate = date('Y-m-d', strtotime('+1 month'));
         <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 space-y-4">
             <h2 class="text-3xl font-black text-gray-900 text-center mb-8">FAQ</h2>
             <?php foreach ([
-                ['Apakah harus login dulu?', 'Tidak. Akun dibuat langsung dari form pendaftaran tabungan.'],
-                ['Bisa target nominal manual?', 'Bisa. Pilih opsi Nominal Manual dan isi target sesuai kebutuhan.'],
-                ['Ke mana setelah submit?', 'Sistem otomatis login dan mengarahkan Anda ke dashboard detail tabungan.']
+                ['Apakah harus membayar uang muka atau setoran awal saat mendaftar?', 'Tidak. Pendaftaran awal kini sepenuhnya bebas biaya (uang muka Rp 0) dan tidak memerlukan bukti transfer. Anda dapat langsung membuat akun secara gratis dan mulai menabung secara bertahap dari dashboard.'],
+                ['Bagaimana cara menentukan jangka waktu (tenor) tabungan?', 'Kami menyediakan dua pilihan fleksibel: Anda dapat menggunakan tenor standar 10 bulan, atau memilih opsi "Tentukan Tenor" untuk menyesuaikan jumlah bulan tenor secara mandiri sesuai dengan harga hewan qurban yang dipilih.'],
+                ['Bagaimana cara masuk (login) setelah pendaftaran?', 'Sistem akan otomatis menghasilkan username unik dari awalan email Anda, mendaftarkan akun, dan mengarahkan Anda langsung ke dashboard dalam kondisi sudah login. Anda dapat login kembali kapan saja menggunakan alamat email dan password yang Anda tentukan sendiri.']
             ] as $faq): ?>
                 <div class="rounded-2xl bg-white border border-gray-100 p-6">
                     <h3 class="font-black text-gray-900"><?php echo htmlspecialchars($faq[0]); ?></h3>
-                    <p class="mt-2 text-sm text-gray-600"><?php echo htmlspecialchars($faq[1]); ?></p>
+                    <p class="mt-2 text-sm text-gray-600 leading-relaxed"><?php echo htmlspecialchars($faq[1]); ?></p>
                 </div>
             <?php endforeach; ?>
         </div>
@@ -212,6 +182,12 @@ $minTargetDate = date('Y-m-d', strtotime('+1 month'));
 </div>
 
 <script>
+function copyBankNumber() {
+    const bankNum = document.getElementById('bank-number').innerText;
+    navigator.clipboard.writeText(bankNum.replace(/\s/g, '')).then(() => {
+        showToast('Nomor rekening berhasil disalin!', 'success');
+    });
+}
 const rupiah = value => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(value || 0);
 const modeInputs = document.querySelectorAll('input[name="target_mode"]');
 const livestockRadios = document.querySelectorAll('input[name="livestock_id"]');
@@ -235,20 +211,20 @@ let remoteValidationTimer = null;
 let showValidationErrors = false;
 
 function monthsToTarget() {
-    const target = new Date(dateInput.value + 'T00:00:00');
-    const today = new Date();
-    let months = (target.getFullYear() - today.getFullYear()) * 12 + target.getMonth() - today.getMonth();
-    if (target.getDate() > today.getDate()) months += 1;
-    return Math.max(1, months || 1);
+    const mode = document.querySelector('input[name="target_mode"]:checked').value;
+    if (mode === 'livestock') {
+        return 10;
+    }
+    return Math.max(1, parseInt(manualDurationInput.value || 10, 10));
 }
 function selectedLivestock() {
     return document.querySelector('input[name="livestock_id"]:checked');
 }
 function currentTarget() {
-    const mode = document.querySelector('input[name="target_mode"]:checked').value;
-    if (mode === 'manual') return { title: 'Tentukan Tenor', amount: parseFloat(manualInput.value || 0) };
     const item = selectedLivestock();
-    return { title: item ? item.dataset.name : 'Pilih Hewan Qurban', amount: item ? parseFloat(item.dataset.price || 0) : 0 };
+    const title = item ? item.dataset.name : 'Pilih Hewan Qurban';
+    const amount = item ? parseFloat(item.dataset.price || 0) : 3500000;
+    return { title: title, amount: amount };
 }
 function calculateSimulation() {
     const mode = document.querySelector('input[name="target_mode"]:checked').value;
@@ -272,14 +248,21 @@ function calculateSimulation() {
     const remaining = Math.max(0, target.amount - deposit);
     const progress = target.amount > 0 ? Math.min(100, Math.round((deposit / target.amount) * 100)) : 0;
     durationInput.value = months;
+    const targetDate = new Date();
+    targetDate.setMonth(targetDate.getMonth() + months);
+    dateInput.value = targetDate.toISOString().split('T')[0];
+
     document.getElementById('summary-title').textContent = target.title;
     document.getElementById('target-preview').textContent = rupiah(target.amount);
     document.getElementById('tenor-preview').textContent = months + ' bulan';
-    document.getElementById('deposit-preview').textContent = rupiah(deposit);
-    document.getElementById('progress-preview').textContent = progress + '%';
+    const depositPreview = document.getElementById('deposit-preview');
+    if (depositPreview) depositPreview.textContent = rupiah(deposit);
+    const progressPreview = document.getElementById('progress-preview');
+    if (progressPreview) progressPreview.textContent = progress + '%';
     document.getElementById('monthly-preview').textContent = rupiah(remaining / months);
     document.getElementById('remaining-preview').textContent = 'Sisa target ' + rupiah(remaining);
-    document.getElementById('progress-bar').style.width = progress + '%';
+    const progressBar = document.getElementById('progress-bar');
+    if (progressBar) progressBar.style.width = progress + '%';
 }
 
 function field(name) {
@@ -315,38 +298,36 @@ function syncCurrencyInput(display, hidden) {
 }
 
 function isTransferMethod() {
-    return paymentMethodInput.value !== 'cash';
+    return paymentMethodInput && paymentMethodInput.tagName === 'SELECT' && paymentMethodInput.value !== 'cash';
 }
 
 function localValidationErrors() {
     const errors = {};
-    const username = field('username').value.trim().toLowerCase();
     const password = field('password').value;
     const confirm = field('password_confirm').value;
     const email = field('email').value.trim();
     const targetMode = document.querySelector('input[name="target_mode"]:checked').value;
     const targetAmount = currentTargetAmount();
     const deposit = parseFloat(depositInput.value || 0);
-    const proof = proofInput.files[0];
+    const proof = proofInput ? proofInput.files[0] : null;
 
     if (!field('full_name').value.trim()) errors.full_name = 'Nama lengkap wajib diisi.';
     if (!field('phone').value.trim()) errors.phone = 'No HP / WhatsApp wajib diisi.';
     if (!field('address').value.trim()) errors.address = 'Alamat wajib diisi.';
-    if (!/^[a-z0-9._-]{4,50}$/.test(username)) errors.username = 'Username minimal 4 karakter dan hanya huruf, angka, titik, strip, atau underscore.';
     if (password.length < 8 || !/[A-Za-z]/.test(password) || !/[0-9]/.test(password)) errors.password = 'Password minimal 8 karakter serta mengandung huruf dan angka.';
     if (confirm !== password) errors.password_confirm = 'Konfirmasi password tidak cocok.';
-    if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) errors.email = 'Format email tidak valid.';
+    if (!email) errors.email = 'Alamat email wajib diisi.';
+    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) errors.email = 'Format email tidak valid.';
     if (targetMode === 'livestock' && !selectedLivestock()) errors.livestock_id = 'Pilih salah satu hewan qurban.';
     if (targetMode === 'manual' && targetAmount < 100000) errors.manual_target_amount = 'Target nominal manual minimal Rp 100.000.';
     if (!dateInput.value) errors.target_date = 'Target pelunasan wajib dipilih.';
-    if (deposit < 10000) errors.initial_deposit = 'Nominal awal minimal Rp 10.000.';
+    if (deposit < 0) errors.initial_deposit = 'Nominal awal tidak valid.';
     if (targetAmount > 0 && deposit > targetAmount) errors.initial_deposit = 'Nominal awal tidak boleh melebihi target tabungan.';
-    if (isTransferMethod()) {
+    if (isTransferMethod() && proofInput) {
         if (!proof) errors.payment_proof = 'Upload bukti transfer wajib untuk pembayaran transfer.';
         if (proof && !['image/jpeg', 'image/png', 'image/webp'].includes(proof.type)) errors.payment_proof = 'File harus jpg, png, atau webp.';
         if (proof && proof.size > 2 * 1024 * 1024) errors.payment_proof = 'Ukuran file maksimal 2MB.';
     }
-    if (remoteValidationState.username) errors.username = remoteValidationState.username;
     if (remoteValidationState.email) errors.email = remoteValidationState.email;
 
     return errors;
@@ -355,7 +336,7 @@ function localValidationErrors() {
 function renderValidation() {
     const errors = localValidationErrors();
     if (showValidationErrors) {
-        ['full_name', 'phone', 'email', 'address', 'username', 'password', 'password_confirm', 'manual_target_amount', 'target_date', 'initial_deposit', 'payment_method', 'payment_proof'].forEach(name => {
+        ['full_name', 'phone', 'email', 'address', 'password', 'password_confirm', 'manual_target_amount', 'target_date'].forEach(name => {
             setFieldError(name, errors[name] || '');
         });
         const messages = Object.values(errors);
@@ -363,7 +344,6 @@ function renderValidation() {
         errorSummary.classList.toggle('hidden', messages.length === 0);
     }
     const messages = Object.values(errors);
-    submitButton.disabled = messages.length > 0;
     return errors;
 }
 
@@ -371,6 +351,7 @@ function saveDraft() {
     const data = {};
     Array.from(form.elements).forEach(el => {
         if (!el.name || el.type === 'password' || el.type === 'file' || el.name === 'csrf_token') return;
+        if (el.name === 'initial_deposit' || el.name === 'payment_method') return;
         if (el.type === 'radio') {
             if (el.checked) data[el.name] = el.value;
             return;
@@ -382,13 +363,15 @@ function saveDraft() {
 
 function updatePaymentFields() {
     const showTransfer = isTransferMethod();
-    transferInfo.classList.toggle('hidden', !showTransfer);
-    proofField.classList.toggle('hidden', !showTransfer);
-    proofInput.required = showTransfer;
-    if (!showTransfer) {
+    if (transferInfo) transferInfo.classList.toggle('hidden', !showTransfer);
+    if (proofField) proofField.classList.toggle('hidden', !showTransfer);
+    if (proofInput) proofInput.required = showTransfer;
+    if (!showTransfer && proofInput) {
         proofInput.value = '';
-        proofPreview.classList.add('hidden');
-        proofPreview.src = '';
+        if (proofPreview) {
+            proofPreview.classList.add('hidden');
+            proofPreview.src = '';
+        }
     }
 }
 
@@ -412,13 +395,10 @@ function restoreDraft() {
 function validateRemote() {
     clearTimeout(remoteValidationTimer);
     remoteValidationTimer = setTimeout(() => {
-        const username = field('username').value.trim().toLowerCase();
         const email = field('email').value.trim().toLowerCase();
         const params = new URLSearchParams();
-        if (username.length >= 4) params.set('username', username);
         if (email) params.set('email', email);
         if (!params.toString()) {
-            remoteValidationState.username = null;
             remoteValidationState.email = null;
             renderValidation();
             return;
@@ -426,7 +406,6 @@ function validateRemote() {
         fetch('/lautan-ternak-pantura/api/savings/validate_registration?' + params.toString())
             .then(response => response.ok ? response.json() : null)
             .then(payload => {
-                remoteValidationState.username = payload && payload.errors ? (payload.errors.username || null) : null;
                 remoteValidationState.email = payload && payload.errors ? (payload.errors.email || null) : null;
                 renderValidation();
             })
@@ -438,61 +417,54 @@ modeInputs.forEach(input => input.addEventListener('change', calculateSimulation
 livestockRadios.forEach(input => input.addEventListener('change', function() {
     if (this.checked) {
         manualInput.value = this.dataset.price;
+        const hiddenManual = document.getElementById('hidden_manual_target_amount');
+        if (hiddenManual) {
+            hiddenManual.value = this.dataset.price;
+        }
     }
     calculateSimulation();
 }));
 [manualInput, dateInput, depositInput].forEach(input => input.addEventListener('input', calculateSimulation));
 
-function syncDurationToDate() {
-    if (!dateInput.value) return;
-    const target = new Date(dateInput.value + 'T00:00:00');
-    const today = new Date();
-    let months = (target.getFullYear() - today.getFullYear()) * 12 + target.getMonth() - today.getMonth();
-    if (target.getDate() > today.getDate()) months += 1;
-    manualDurationInput.value = Math.max(1, months || 1);
+manualDurationInput.addEventListener('input', calculateSimulation);
+if (depositDisplay) {
+    depositDisplay.addEventListener('input', function() {
+        syncCurrencyInput(depositDisplay, depositInput);
+        calculateSimulation();
+        renderValidation();
+        saveDraft();
+    });
 }
-
-manualDurationInput.addEventListener('input', function() {
-    const months = parseInt(this.value || 1, 10);
-    const today = new Date();
-    today.setMonth(today.getMonth() + months);
-    dateInput.value = today.toISOString().split('T')[0];
-    calculateSimulation();
-});
-
-dateInput.addEventListener('input', function() {
-    syncDurationToDate();
-});
-depositDisplay.addEventListener('input', function() {
-    syncCurrencyInput(depositDisplay, depositInput);
-    calculateSimulation();
-    renderValidation();
-    saveDraft();
-});
-paymentMethodInput.addEventListener('change', function() {
-    updatePaymentFields();
-    renderValidation();
-    saveDraft();
-});
-proofInput.addEventListener('change', function() {
-    const file = proofInput.files[0];
-    if (file && ['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
-        proofPreview.src = URL.createObjectURL(file);
-        proofPreview.classList.remove('hidden');
-    } else {
-        proofPreview.classList.add('hidden');
-        proofPreview.src = '';
-    }
-    renderValidation();
-});
+if (paymentMethodInput && paymentMethodInput.tagName === 'SELECT') {
+    paymentMethodInput.addEventListener('change', function() {
+        updatePaymentFields();
+        renderValidation();
+        saveDraft();
+    });
+}
+if (proofInput) {
+    proofInput.addEventListener('change', function() {
+        const file = proofInput.files[0];
+        if (file && ['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
+            proofPreview.src = URL.createObjectURL(file);
+            proofPreview.classList.remove('hidden');
+        } else {
+            proofPreview.classList.add('hidden');
+            proofPreview.src = '';
+        }
+        renderValidation();
+    });
+}
 restoreDraft();
+if (depositInput) depositInput.value = "0";
+const pmInput = form.querySelector('[name="payment_method"]');
+if (pmInput) pmInput.value = "cash";
 form.addEventListener('input', function(event) {
-    if (event.target.name === 'username') remoteValidationState.username = null;
     if (event.target.name === 'email') remoteValidationState.email = null;
     saveDraft();
     calculateSimulation();
     renderValidation();
-    if (event.target.name === 'username' || event.target.name === 'email') validateRemote();
+    if (event.target.name === 'email') validateRemote();
 });
 form.addEventListener('change', function(event) {
     saveDraft();
@@ -516,17 +488,18 @@ form.addEventListener('submit', function(event) {
 });
 window.addEventListener('pageshow', function() {
     restoreDraft();
-    depositDisplay.value = depositInput.value ? rupiah(parseFloat(depositInput.value)) : '';
+    if (depositInput) depositInput.value = "0";
+    const pmInput = form.querySelector('[name="payment_method"]');
+    if (pmInput) pmInput.value = "cash";
+    if (depositDisplay) depositDisplay.value = depositInput.value ? rupiah(parseFloat(depositInput.value)) : '';
     updatePaymentFields();
-    syncDurationToDate();
     calculateSimulation();
     renderValidation();
     validateRemote();
 });
 fetch('/lautan-ternak-pantura/api/savings/livestock').then(r => r.ok ? r.json() : null).then(() => calculateSimulation()).catch(calculateSimulation);
-depositDisplay.value = depositInput.value ? rupiah(parseFloat(depositInput.value)) : '';
+if (depositDisplay) depositDisplay.value = depositInput.value ? rupiah(parseFloat(depositInput.value)) : '';
 updatePaymentFields();
-syncDurationToDate();
 calculateSimulation();
 renderValidation();
 validateRemote();

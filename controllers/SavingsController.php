@@ -32,18 +32,8 @@ class SavingsController {
 
     public function index() {
         $this->requireRole('customer');
-        $this->ensureCsrfToken();
-
-        $db = $this->dbConnect();
-        $planModel = new SavingsPlan($db);
-        $transactionModel = new SavingsTransaction($db);
-
-        $customerId = (int)$_SESSION['user_id'];
-        $plans = $planModel->getByCustomer($customerId);
-        $stats = $planModel->getDashboardStats($customerId);
-        $recentTransactions = $transactionModel->getRecentByCustomer($customerId, 5);
-
-        require 'views/customer/savings.php';
+        header('Location: /lautan-ternak-pantura/customer/dashboard');
+        exit;
     }
 
     public function create() {
@@ -69,23 +59,8 @@ class SavingsController {
 
     public function detail($id = null) {
         $this->requireRole('customer');
-        $this->ensureCsrfToken();
-
-        $db = $this->dbConnect();
-        $planModel = new SavingsPlan($db);
-        $transactionModel = new SavingsTransaction($db);
-
-        $plan = $planModel->getCustomerPlan((int)$id, (int)$_SESSION['user_id']);
-        if (!$plan) {
-            http_response_code(404);
-            echo 'Rencana tabungan tidak ditemukan.';
-            return;
-        }
-
-        $transactions = $transactionModel->getByPlan($plan['id']);
-        $progress = $planModel->calculateProgress((float)$plan['current_amount'], (float)$plan['target_amount']);
-
-        require 'views/customer/savings_detail.php';
+        header('Location: /lautan-ternak-pantura/customer/dashboard');
+        exit;
     }
 
     public function management() {
@@ -127,5 +102,45 @@ class SavingsController {
         $progress = $planModel->calculateProgress((float)$plan['current_amount'], (float)$plan['target_amount']);
 
         require 'views/admin/savings_detail.php';
+    }
+
+    public function receipt($id = null) {
+        $this->printReceipt($id);
+    }
+
+    public function printReceipt($id = null) {
+        if (session_status() === PHP_SESSION_NONE) {
+            session_start();
+        }
+        if (empty($_SESSION['user_id'])) {
+            header('Location: /lautan-ternak-pantura/auth/login');
+            exit;
+        }
+
+        $db = $this->dbConnect();
+        $transactionModel = new SavingsTransaction($db);
+        $planModel = new SavingsPlan($db);
+
+        $trx = $transactionModel->getById((int)$id);
+        if (!$trx) {
+            http_response_code(404);
+            echo 'Transaksi tidak ditemukan.';
+            return;
+        }
+
+        $plan = $planModel->getById($trx['savings_plan_id']);
+        if (!$plan) {
+            http_response_code(404);
+            echo 'Rencana tabungan terkait tidak ditemukan.';
+            return;
+        }
+
+        if ($_SESSION['role'] !== 'admin' && (int)$plan['customer_id'] !== (int)$_SESSION['user_id']) {
+            http_response_code(403);
+            echo 'Akses ditolak.';
+            return;
+        }
+
+        require 'views/print_receipt.php';
     }
 }

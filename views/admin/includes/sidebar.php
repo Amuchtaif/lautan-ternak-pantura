@@ -111,7 +111,7 @@ $currentUri = $_SERVER['REQUEST_URI'];
 
         <a href="/lautan-ternak-pantura/savingsReport/daily"
             class="sidebar-link flex items-center gap-4 px-4 py-3.5 rounded-r-lg font-bold text-sm transition-all group <?php echo strpos($currentUri, '/savingsReport/daily') !== false ? 'active text-brand-primary' : 'text-gray-500'; ?>">
-            <i class="fa-solid fa-piggy-bank text-lg"></i>
+            <i class="fa-solid fa-calendar-day text-lg"></i>
             <span>Harian Tabungan</span>
         </a>
 

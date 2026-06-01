@@ -16,6 +16,19 @@ try {
     $db = new PDO('sqlite::memory:');
     $db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
     
+    // Register MySQL DATE_FORMAT polyfill for SQLite TDD isolation
+    $db->sqliteCreateFunction('DATE_FORMAT', function($date, $format) {
+        if (!$date) return null;
+        $timestamp = strtotime($date);
+        if (!$timestamp) return null;
+        $phpFormat = str_replace(
+            ['%Y', '%m', '%d', '%H', '%i', '%s'],
+            ['Y', 'm', 'd', 'H', 'i', 's'],
+            $format
+        );
+        return date($phpFormat, $timestamp);
+    }, 2);
+    
     // Create isolated tables mimicking MySQL schema
     $db->exec("
         CREATE TABLE users (
@@ -126,6 +139,46 @@ try {
         )
     ");
 
+    $db->exec("
+        CREATE TABLE sales (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            invoice_code VARCHAR(100) UNIQUE NOT NULL,
+            customer_name VARCHAR(150) NOT NULL,
+            customer_phone VARCHAR(50) DEFAULT '',
+            livestock_id INTEGER NOT NULL,
+            livestock_name VARCHAR(150) NOT NULL,
+            peternak_name VARCHAR(150) NOT NULL,
+            qty INTEGER NOT NULL,
+            selling_price_snapshot DECIMAL(15,2) NOT NULL,
+            total_price DECIMAL(15,2) NOT NULL,
+            payment_type VARCHAR(50) NOT NULL,
+            payment_status VARCHAR(50) DEFAULT 'unpaid',
+            sale_status VARCHAR(50) DEFAULT 'pending',
+            notes TEXT DEFAULT NULL,
+            payment_method VARCHAR(50) DEFAULT NULL,
+            payment_proof VARCHAR(255) DEFAULT NULL,
+            created_by INTEGER NOT NULL,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        )
+    ");
+
+    $db->exec("
+        CREATE TABLE sale_payments (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            sale_id INTEGER NOT NULL,
+            payment_code VARCHAR(100) UNIQUE NOT NULL,
+            payment_date DATETIME DEFAULT CURRENT_TIMESTAMP,
+            payment_method VARCHAR(50) NOT NULL,
+            payment_amount DECIMAL(15,2) NOT NULL,
+            payment_note TEXT DEFAULT NULL,
+            payment_proof VARCHAR(255) DEFAULT NULL,
+            payment_status VARCHAR(50) DEFAULT 'pending',
+            created_by INTEGER NOT NULL,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        )
+    ");
+
 } catch (Exception $e) {
     echo ANSI_RED . "❌ GAGAL MEMBUAT DATABASE ISOLASI: " . $e->getMessage() . ANSI_RESET . "\n";
     exit(1);
@@ -137,6 +190,7 @@ require_once __DIR__ . '/../models/Livestock.php';
 require_once __DIR__ . '/../models/Order.php';
 require_once __DIR__ . '/../models/Savings.php';
 require_once __DIR__ . '/../models/Purchase.php';
+require_once __DIR__ . '/../models/Report.php';
 
 // Simple Test Runner Engine
 $testsPassed = 0;
@@ -174,6 +228,9 @@ require_once __DIR__ . '/SavingsTest.php';
 
 echo "\n📦 [TEST SUITE: Purchase & Inventory Sync]\n";
 require_once __DIR__ . '/PurchaseTest.php';
+
+echo "\n📊 [TEST SUITE: Admin Sales Reports]\n";
+require_once __DIR__ . '/ReportTest.php';
 
 // Summary
 echo "\n==================================================\n";
