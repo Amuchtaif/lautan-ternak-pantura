@@ -59,6 +59,38 @@ class SalePayment {
 
             $paymentId = $this->conn->lastInsertId();
 
+            if (isset($data['payment_status']) && $data['payment_status'] === 'verified') {
+                $bankStmt = $this->conn->query("SELECT id FROM cash_accounts WHERE status = 'active' ORDER BY type = 'bank' DESC, id ASC LIMIT 1");
+                $defaultBankId = $bankStmt->fetchColumn();
+                if ($defaultBankId) {
+                    require_once 'models/CashTransaction.php';
+                    $cashTx = new CashTransaction($this->conn);
+                    
+                    // Fetch livestock details
+                    $livestockStmt = $this->conn->prepare("SELECT l.* FROM livestock l JOIN sales s ON s.livestock_id = l.id WHERE s.id = ?");
+                    $livestockStmt->execute([$data['sale_id']]);
+                    $livestock = $livestockStmt->fetch(PDO::FETCH_ASSOC);
+                    
+                    // Fetch customer name
+                    $custStmt = $this->conn->prepare("SELECT customer_name FROM sales WHERE id = ?");
+                    $custStmt->execute([$data['sale_id']]);
+                    $custName = $custStmt->fetchColumn();
+                    
+                    $desc = "Cicilan Penjualan " . ($livestock['breed'] ?: 'Hewan') . " - " . ($livestock['livestock_code'] ?? '') . " (" . $custName . ")";
+                    
+                    $cashTx->record(
+                        $defaultBankId,
+                        'PENJUALAN_HEWAN',
+                        'sale_payments',
+                        $paymentId,
+                        $desc,
+                        $data['payment_amount'], // cash_in
+                        0,                       // cash_out
+                        $data['created_by']
+                    );
+                }
+            }
+
             $this->conn->commit();
 
             // Recalculate sale status
@@ -113,6 +145,32 @@ class SalePayment {
 
                 if ($payment['payment_amount'] > $remaining) {
                     throw new Exception("Tidak dapat memverifikasi pembayaran ini. Jumlah Rp " . number_format($payment['payment_amount'], 0, ',', '.') . " melebihi sisa kekurangan Rp " . number_format($remaining, 0, ',', '.') . ".");
+                }
+
+                // Log into general cash transactions ledger
+                $bankStmt = $this->conn->query("SELECT id FROM cash_accounts WHERE status = 'active' ORDER BY type = 'bank' DESC, id ASC LIMIT 1");
+                $defaultBankId = $bankStmt->fetchColumn();
+                if ($defaultBankId) {
+                    require_once 'models/CashTransaction.php';
+                    $cashTx = new CashTransaction($this->conn);
+                    
+                    // Fetch livestock details
+                    $livestockStmt = $this->conn->prepare("SELECT l.* FROM livestock l JOIN sales s ON s.livestock_id = l.id WHERE s.id = ?");
+                    $livestockStmt->execute([$payment['sale_id']]);
+                    $livestock = $livestockStmt->fetch(PDO::FETCH_ASSOC);
+                    
+                    $desc = "Pelunasan / Cicilan Penjualan " . ($livestock['breed'] ?: 'Hewan') . " - " . ($livestock['livestock_code'] ?? '') . " (" . $payment['customer_name'] . ")";
+                    
+                    $cashTx->record(
+                        $defaultBankId,
+                        'PENJUALAN_HEWAN',
+                        'sale_payments',
+                        $id,
+                        $desc,
+                        $payment['payment_amount'], // cash_in
+                        0,                          // cash_out
+                        $_SESSION['user_id'] ?? 1
+                    );
                 }
             }
 

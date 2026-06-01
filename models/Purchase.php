@@ -70,6 +70,27 @@ class Purchase {
                     $data['purchased_at'] ?? date('Y-m-d H:i:s'),
                     ($payment_type === 'dp') ? 'Pembayaran Uang Muka (DP)' : 'Pembayaran Lunas Awal'
                 ]);
+
+                // Record Cash Transaction
+                require_once 'models/CashTransaction.php';
+                $cashTx = new CashTransaction($this->conn);
+                $cashAccountId = intval($data['cash_account_id'] ?? 0);
+                if ($cashAccountId <= 0) {
+                    throw new Exception("Rekening kas sumber pembayaran wajib dipilih.");
+                }
+
+                $desc = "Pembelian " . ($livestock['breed'] ?: 'Hewan') . " - " . ($livestock['livestock_code'] ?? 'Stok');
+                $cashTx->record(
+                    $cashAccountId,
+                    'PEMBELIAN_HEWAN',
+                    'purchases',
+                    $purchaseId,
+                    $desc,
+                    0,              // cash_in is 0
+                    $amount_paid,   // cash_out
+                    $data['created_by'],
+                    $data['purchased_at'] ?? null
+                );
             }
 
             // Increment livestock stock
@@ -235,10 +256,14 @@ class Purchase {
         }
     }
 
-    public function recordPayment($id, $amount, $paymentDate = null) {
+    public function recordPayment($id, $amount, $paymentDate = null, $accountId = 0) {
         $purchase = $this->getById($id);
         if (!$purchase) {
             throw new Exception("Data pembelian tidak ditemukan.");
+        }
+        
+        if (intval($accountId) <= 0) {
+            throw new Exception("Rekening kas sumber pembayaran wajib dipilih.");
         }
         
         $remaining = $purchase['total_purchase'] - $purchase['amount_paid'];
@@ -274,6 +299,28 @@ class Purchase {
                 $dateVal,
                 'Pembayaran Tambahan / Pelunasan'
             ]);
+            
+            // Record Cash Transaction
+            require_once 'models/CashTransaction.php';
+            $cashTx = new CashTransaction($this->conn);
+            
+            // Fetch livestock details
+            $livestockStmt = $this->conn->prepare("SELECT l.* FROM livestock l JOIN purchases p ON p.livestock_id = l.id WHERE p.id = ?");
+            $livestockStmt->execute([$id]);
+            $livestock = $livestockStmt->fetch(PDO::FETCH_ASSOC);
+            
+            $desc = "Pembayaran Cicilan Pembelian " . ($livestock['breed'] ?: 'Hewan') . " - " . ($livestock['livestock_code'] ?? '');
+            $cashTx->record(
+                $accountId,
+                'PEMBELIAN_HEWAN',
+                'purchases',
+                $id,
+                $desc,
+                0,              // cash_in is 0
+                $amount,        // cash_out
+                $_SESSION['user_id'] ?? 1,
+                $dateVal
+            );
             
             $this->conn->commit();
             return true;

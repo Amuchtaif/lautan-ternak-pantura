@@ -245,7 +245,7 @@ unset($_SESSION['success']);
                     <?php else: ?>
                         <div class="text-center py-10">
                             <div class="w-20 h-20 rounded-full bg-gray-50 flex items-center justify-center mx-auto mb-6 text-gray-300 text-3xl">
-                                <i class="fas fa-piggy-bank"></i>
+                                <i class="fas fa-coins"></i>
                             </div>
                             <p class="text-gray-400 font-bold mb-8">Anda belum memiliki rencana tabungan aktif.</p>
                             <a href="/lautan-ternak-pantura/tabungan" class="inline-flex items-center gap-2 text-brand-primary font-black uppercase text-xs tracking-widest hover:gap-4 transition-all">

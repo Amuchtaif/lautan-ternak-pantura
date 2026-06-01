@@ -53,6 +53,11 @@ class SalesController {
             }
         }
 
+        // Fetch active cash accounts for destination select
+        require_once 'models/CashAccount.php';
+        $accountModel = new CashAccount($db);
+        $accountsList = $accountModel->getActiveAccounts();
+
         require 'views/admin/sales.php';
     }
 
@@ -70,6 +75,7 @@ class SalesController {
             $paymentAmount = floatval($_POST['payment_amount'] ?? 0);
             $paymentMethod = trim($_POST['payment_method'] ?? 'Tunai / Cash');
             $notes = trim($_POST['notes'] ?? '');
+            $cashAccountId = intval($_POST['cash_account_id'] ?? 0);
 
             try {
                 // Optional Payment Proof Upload
@@ -130,7 +136,8 @@ class SalesController {
                     'initial_payment_status' => 'verified', // Admin records are verified instantly
                     'sale_status' => 'processing',
                     'notes' => $notes,
-                    'created_by' => $_SESSION['user_id']
+                    'created_by' => $_SESSION['user_id'],
+                    'cash_account_id' => $cashAccountId
                 ];
 
                 $saleModel->create($data);

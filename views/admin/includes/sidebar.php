@@ -40,8 +40,16 @@ $currentUri = $_SERVER['REQUEST_URI'];
 <!-- Dummy Spacer to occupy space in flex flow on desktop -->
 <div class="w-72 shrink-0 hidden lg:block"></div>
 
+<!-- Sidebar Backdrop for Mobile -->
+<div id="sidebar-backdrop" class="fixed inset-0 bg-gray-900/50 backdrop-blur-sm z-40 hidden opacity-0 transition-opacity duration-300 lg:hidden" onclick="toggleMobileSidebar()"></div>
+
 <!-- Sidebar -->
-<aside class="w-72 bg-white border-r border-gray-100 flex flex-col fixed left-0 top-0 h-screen hidden lg:flex z-30">
+<aside id="admin-sidebar" class="w-72 bg-white border-r border-gray-100 flex flex-col fixed left-0 top-0 h-screen z-50 transition-all duration-300 transform -translate-x-full lg:translate-x-0 lg:z-30 lg:flex">
+    <!-- Close Button for Mobile -->
+    <button onclick="toggleMobileSidebar()" class="lg:hidden w-8 h-8 rounded-xl bg-gray-50 text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition-all flex items-center justify-center absolute top-9 right-6">
+        <i class="fas fa-times"></i>
+    </button>
+
     <div class="p-8 shrink-0">
         <a href="/lautan-ternak-pantura/index" class="flex items-center gap-3">
             <img src="/lautan-ternak-pantura/assets/images/logo.png" alt="Logo" class="h-10 w-auto">
@@ -93,6 +101,32 @@ $currentUri = $_SERVER['REQUEST_URI'];
             <span>Pembelian Hewan</span>
         </a>
 
+        <p class="px-4 text-[10px] font-black text-gray-400 uppercase tracking-widest pt-6 mb-4">Keuangan</p>
+
+        <a href="/lautan-ternak-pantura/finance/cash"
+            class="sidebar-link flex items-center gap-4 px-4 py-3.5 rounded-r-lg font-bold text-sm transition-all group <?php echo strpos($currentUri, '/finance/cash') !== false ? 'active text-brand-primary' : 'text-gray-500'; ?>">
+            <i class="fa-solid fa-building-columns text-lg"></i>
+            <span>Kas & Bank</span>
+        </a>
+
+        <a href="/lautan-ternak-pantura/finance/investor"
+            class="sidebar-link flex items-center gap-4 px-4 py-3.5 rounded-r-lg font-bold text-sm transition-all group <?php echo strpos($currentUri, '/finance/investor') !== false ? 'active text-brand-primary' : 'text-gray-500'; ?>">
+            <i class="fa-solid fa-hand-holding-dollar text-lg"></i>
+            <span>Modal Investor</span>
+        </a>
+
+        <a href="/lautan-ternak-pantura/finance/operasional"
+            class="sidebar-link flex items-center gap-4 px-4 py-3.5 rounded-r-lg font-bold text-sm transition-all group <?php echo strpos($currentUri, '/finance/operasional') !== false ? 'active text-brand-primary' : 'text-gray-500'; ?>">
+            <i class="fa-solid fa-money-bill-wave text-lg"></i>
+            <span>Dana Operasional</span>
+        </a>
+
+        <a href="/lautan-ternak-pantura/finance/arusKas"
+            class="sidebar-link flex items-center gap-4 px-4 py-3.5 rounded-r-lg font-bold text-sm transition-all group <?php echo strpos($currentUri, '/finance/arusKas') !== false ? 'active text-brand-primary' : 'text-gray-500'; ?>">
+            <i class="fa-solid fa-receipt text-lg"></i>
+            <span>Arus Kas</span>
+        </a>
+
         <p class="px-4 text-[10px] font-black text-gray-400 uppercase tracking-widest pt-6 mb-4">Laporan Penjualan</p>
 
         <a href="/lautan-ternak-pantura/report/daily"
@@ -129,6 +163,22 @@ $currentUri = $_SERVER['REQUEST_URI'];
             activeLink.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
         }
     });
+
+    function toggleMobileSidebar() {
+        const sidebar = document.getElementById('admin-sidebar');
+        const backdrop = document.getElementById('sidebar-backdrop');
+        if (sidebar.classList.contains('-translate-x-full')) {
+            sidebar.classList.remove('-translate-x-full');
+            sidebar.classList.add('translate-x-0');
+            backdrop.classList.remove('hidden');
+            setTimeout(() => backdrop.classList.add('opacity-100'), 10);
+        } else {
+            sidebar.classList.add('-translate-x-full');
+            sidebar.classList.remove('translate-x-0');
+            backdrop.classList.remove('opacity-100');
+            setTimeout(() => backdrop.classList.add('hidden'), 300);
+        }
+    }
     </script>
 
     <div class="p-6 mt-auto border-t border-gray-50 shrink-0">

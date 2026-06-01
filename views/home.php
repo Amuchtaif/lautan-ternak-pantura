@@ -148,7 +148,7 @@
                     class="group relative bg-white p-8 rounded-3xl border border-gray-100 shadow-sm hover:shadow-xl transition-all duration-300 hover:-translate-y-2">
                     <div
                         class="w-16 h-16 bg-brand-light text-brand-primary rounded-2xl flex items-center justify-center text-2xl mb-6 shadow-sm group-hover:bg-brand-primary group-hover:text-white transition-colors duration-300">
-                        <i class="fas fa-piggy-bank"></i>
+                        <i class="fas fa-coins"></i>
                     </div>
                     <div
                         class="absolute -top-4 -right-4 w-12 h-12 bg-white rounded-full flex items-center justify-center font-black text-brand-primary/20 text-4xl italic group-hover:text-brand-primary/40 transition-colors">

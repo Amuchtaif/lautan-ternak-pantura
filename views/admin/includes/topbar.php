@@ -1,7 +1,7 @@
 <!-- Top Navigation -->
 <header class="bg-white/80 backdrop-blur-md fixed top-0 right-0 left-0 lg:left-72 z-40 border-b border-gray-100 px-8 py-4 flex items-center justify-between shrink-0 h-20">
     <div class="flex items-center gap-4">
-        <button class="lg:hidden text-gray-500 text-xl"><i class="fas fa-bars"></i></button>
+        <button onclick="toggleMobileSidebar()" class="lg:hidden text-gray-500 text-xl"><i class="fas fa-bars"></i></button>
     </div>
 
     <div class="flex items-center gap-6">

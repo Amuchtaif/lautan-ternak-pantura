@@ -397,6 +397,22 @@ require_once 'views/admin/includes/sidebar.php';
             </div>
 
             <div class="space-y-1.5">
+                <label class="block text-xs font-black text-gray-400 uppercase tracking-widest px-1">Pilih Rekening Kas Pembayaran</label>
+                <div class="relative">
+                    <select name="cash_account_id" required
+                        class="w-full pl-4 pr-10 py-3.5 bg-gray-50 border border-gray-100 rounded-xl outline-none focus:border-brand-primary focus:bg-white text-sm font-bold text-gray-700 appearance-none cursor-pointer">
+                        <option value="">-- Pilih Rekening Kas Sumber --</option>
+                        <?php foreach ($accountsList as $acc): ?>
+                            <option value="<?php echo $acc['id']; ?>">
+                                <?php echo htmlspecialchars($acc['name']); ?> (Saldo: Rp <?php echo number_format($acc['current_balance'], 0, ',', '.'); ?>)
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+                    <i class="fas fa-chevron-down absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none text-xs"></i>
+                </div>
+            </div>
+
+            <div class="space-y-1.5">
                 <label class="block text-xs font-black text-gray-400 uppercase tracking-widest px-1">Tanggal Pembayaran</label>
                 <input type="date" name="payment_date" value="<?php echo date('Y-m-d'); ?>" required
                     class="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-xl outline-none focus:border-brand-primary focus:bg-white text-sm font-bold text-gray-700 transition-all animate-all">
@@ -814,6 +830,23 @@ require_once 'views/admin/includes/sidebar.php';
                     <span class="absolute left-5 top-1/2 -translate-y-1/2 text-gray-400 font-bold text-xs">Rp</span>
                     <input type="text" id="modal_amount_paid" name="amount_paid" oninput="formatModalCurrency(this)" placeholder="Contoh: 5.000.000..."
                         class="w-full pl-12 pr-5 py-3.5 bg-gray-50 border-2 border-transparent rounded-xl outline-none focus:border-brand-primary/20 focus:bg-white transition-all font-bold text-xs">
+                </div>
+            </div>
+
+            <!-- Rekening Kas Sumber Pembayaran -->
+            <div class="space-y-1.5">
+                <label class="block text-xs font-black text-gray-400 uppercase tracking-widest px-1">Sumber Rekening Pembayaran</label>
+                <div class="relative">
+                    <select name="cash_account_id" required
+                        class="w-full pl-5 pr-10 py-3.5 bg-gray-50 border-2 border-transparent rounded-xl outline-none focus:border-brand-primary/20 focus:bg-white text-xs font-bold text-gray-700 appearance-none cursor-pointer">
+                        <option value="">-- Pilih Rekening Kas Sumber --</option>
+                        <?php foreach ($accountsList as $acc): ?>
+                            <option value="<?php echo $acc['id']; ?>">
+                                <?php echo htmlspecialchars($acc['name']); ?> (Saldo: Rp <?php echo number_format($acc['current_balance'], 0, ',', '.'); ?>)
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+                    <i class="fas fa-chevron-down absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none text-xs"></i>
                 </div>
             </div>
 

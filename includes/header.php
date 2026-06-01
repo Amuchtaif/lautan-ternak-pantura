@@ -50,6 +50,36 @@
             gap: 12px;
             pointer-events: none;
         }
+
+        /* Sleek Mobile Sidebar styling */
+        .mobile-sidebar-link {
+            border-left: 4px solid transparent;
+            transition: all 0.2s ease-in-out;
+        }
+        
+        .mobile-sidebar-link.active {
+            background: linear-gradient(90deg, rgba(13, 91, 181, 0.08) 0%, rgba(13, 91, 181, 0) 100%) !important;
+            color: #0d5bb5 !important;
+            border-left-color: #0d5bb5 !important;
+            font-weight: 800 !important;
+            padding-left: 1.5rem !important;
+        }
+        
+        .mobile-sidebar-link.active i {
+            color: #0d5bb5 !important;
+            transform: scale(1.15);
+        }
+
+        .mobile-sidebar-link:not(.active):hover {
+            border-left-color: rgba(13, 91, 181, 0.3) !important;
+            background-color: rgba(13, 91, 181, 0.02) !important;
+            color: #0d5bb5 !important;
+            padding-left: 1.25rem;
+        }
+
+        .mobile-sidebar-link:hover i {
+            transform: scale(1.1);
+        }
     </style>
     <script>
         function showToast(message, type = 'success') {
@@ -207,7 +237,7 @@
                     <!-- Mobile menu button -->
                     <div class="md:hidden flex items-center">
                         <button type="button"
-                            onclick="document.getElementById('mobile-menu').classList.toggle('hidden')"
+                            onclick="toggleMobileMenu()"
                             class="inline-flex items-center justify-center p-2 rounded-md text-gray-400 hover:text-brand-primary hover:bg-gray-100 focus:outline-none transition">
                             <i class="fas fa-bars text-xl"></i>
                         </button>
@@ -216,77 +246,101 @@
             </div>
         </div>
 
-        <!-- Mobile menu, show/hide based on menu state. -->
-        <div class="md:hidden hidden bg-white border-t border-gray-100" id="mobile-menu">
-            <div class="px-2 pt-2 pb-3 space-y-1 sm:px-3">
-                <a href="/lautan-ternak-pantura/index"
-                    class="<?php echo $is_home ? 'bg-brand-light text-brand-primary' : 'text-gray-600 hover:bg-brand-light hover:text-brand-primary'; ?> block px-3 py-2 rounded-md text-base font-medium mobile-nav-link" data-nav="beranda">Beranda</a>
-                <a href="/lautan-ternak-pantura/index#keunggulan"
-                    class="text-gray-600 hover:bg-brand-light hover:text-brand-primary block px-3 py-2 rounded-md text-base font-medium mobile-nav-link" data-nav="keunggulan">Keunggulan</a>
-                <a href="/lautan-ternak-pantura/index#alur"
-                    class="text-gray-600 hover:bg-brand-light hover:text-brand-primary block px-3 py-2 rounded-md text-base font-medium mobile-nav-link" data-nav="alur">Cara
-                    Kerja</a>
-                <a href="/lautan-ternak-pantura/index#testimoni"
-                    class="text-gray-600 hover:bg-brand-light hover:text-brand-primary block px-3 py-2 rounded-md text-base font-medium mobile-nav-link" data-nav="testimoni">Testimoni</a>
-                <a href="/lautan-ternak-pantura/index#galeri"
-                    class="text-gray-600 hover:bg-brand-light hover:text-brand-primary block px-3 py-2 rounded-md text-base font-medium mobile-nav-link" data-nav="galeri">Galeri</a>
-                <a href="/lautan-ternak-pantura/marketplace"
-                    class="<?php echo strpos($current_uri, 'marketplace') !== false ? 'bg-brand-light text-brand-primary' : 'text-gray-600 hover:bg-brand-light hover:text-brand-primary'; ?> block px-3 py-2 rounded-md text-base font-medium">Katalog
-                    Hewan</a>
-                <a href="/lautan-ternak-pantura/tabungan"
-                    class="<?php echo strpos($current_uri, 'tabungan') !== false ? 'bg-brand-light text-brand-primary' : 'text-gray-600 hover:bg-brand-light hover:text-brand-primary'; ?> block px-3 py-2 rounded-md text-base font-medium">Tabungan
-                    Qurban</a>
-                <hr class="border-gray-100 my-2">
-                <?php if (isset($_SESSION['user_id'])): ?>
-                    <a href="<?php echo $dashboard_url; ?>"
-                        class="text-gray-600 hover:bg-brand-light hover:text-brand-primary block px-3 py-2 rounded-md text-base font-medium">Dashboard</a>
-                    <a href="/lautan-ternak-pantura/api/auth/logout"
-                        class="text-red-600 hover:bg-red-50 hover:text-red-700 block px-3 py-2 rounded-md text-base font-medium">Logout</a>
-                <?php else: ?>
-                    <a href="/lautan-ternak-pantura/auth/login"
-                        class="bg-brand-primary text-white block px-3 py-4 rounded-xl text-center text-base font-bold shadow-md mx-2">Masuk
-                        / Daftar</a>
-                <?php endif; ?>
-            </div>
-        </div>
-    </nav>
+        <!-- Mobile Sidebar Backdrop -->
+        <div id="mobile-sidebar-backdrop" class="fixed inset-0 bg-gray-900/50 backdrop-blur-sm z-40 hidden opacity-0 transition-opacity duration-300 md:hidden" onclick="toggleMobileMenu()"></div>
 
-        <!-- Mobile menu, show/hide based on menu state. -->
-        <div class="md:hidden hidden bg-white border-t border-gray-100" id="mobile-menu">
-            <div class="px-2 pt-2 pb-3 space-y-1 sm:px-3">
-                <a href="/lautan-ternak-pantura/index"
-                    class="<?php echo $is_home ? 'bg-brand-light text-brand-primary' : 'text-gray-600 hover:bg-brand-light hover:text-brand-primary'; ?> block px-3 py-2 rounded-md text-base font-medium mobile-nav-link" data-nav="beranda">Beranda</a>
-                <a href="/lautan-ternak-pantura/index#keunggulan"
-                    class="text-gray-600 hover:bg-brand-light hover:text-brand-primary block px-3 py-2 rounded-md text-base font-medium mobile-nav-link" data-nav="keunggulan">Keunggulan</a>
-                <a href="/lautan-ternak-pantura/index#alur"
-                    class="text-gray-600 hover:bg-brand-light hover:text-brand-primary block px-3 py-2 rounded-md text-base font-medium mobile-nav-link" data-nav="alur">Cara
-                    Kerja</a>
-                <a href="/lautan-ternak-pantura/index#testimoni"
-                    class="text-gray-600 hover:bg-brand-light hover:text-brand-primary block px-3 py-2 rounded-md text-base font-medium mobile-nav-link" data-nav="testimoni">Testimoni</a>
-                <a href="/lautan-ternak-pantura/index#galeri"
-                    class="text-gray-600 hover:bg-brand-light hover:text-brand-primary block px-3 py-2 rounded-md text-base font-medium mobile-nav-link" data-nav="galeri">Galeri</a>
-                <a href="/lautan-ternak-pantura/marketplace"
-                    class="<?php echo strpos($current_uri, 'marketplace') !== false ? 'bg-brand-light text-brand-primary' : 'text-gray-600 hover:bg-brand-light hover:text-brand-primary'; ?> block px-3 py-2 rounded-md text-base font-medium">Katalog
-                    Hewan</a>
-                <a href="/lautan-ternak-pantura/tabungan"
-                    class="<?php echo strpos($current_uri, 'tabungan') !== false ? 'bg-brand-light text-brand-primary' : 'text-gray-600 hover:bg-brand-light hover:text-brand-primary'; ?> block px-3 py-2 rounded-md text-base font-medium">Tabungan
-                    Qurban</a>
-                <hr class="border-gray-100 my-2">
-                <?php if (isset($_SESSION['user_id'])): ?>
-                    <a href="<?php echo $dashboard_url; ?>"
-                        class="text-gray-600 hover:bg-brand-light hover:text-brand-primary block px-3 py-2 rounded-md text-base font-medium">Dashboard</a>
-                    <a href="/lautan-ternak-pantura/api/auth/logout"
-                        class="text-red-600 hover:bg-red-50 hover:text-red-700 block px-3 py-2 rounded-md text-base font-medium">Logout</a>
-                <?php else: ?>
-                    <a href="/lautan-ternak-pantura/auth/login"
-                        class="bg-brand-primary text-white block px-3 py-4 rounded-xl text-center text-base font-bold shadow-md mx-2">Masuk
-                        / Daftar</a>
-                <?php endif; ?>
+        <!-- Mobile Sidebar Drawer -->
+        <aside id="mobile-sidebar" class="w-72 bg-white flex flex-col fixed left-0 top-0 h-screen z-50 transition-all duration-300 transform -translate-x-full md:hidden shadow-2xl">
+            <!-- Close Button -->
+            <button onclick="toggleMobileMenu()" class="w-8 h-8 rounded-xl bg-gray-50 text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition-all flex items-center justify-center absolute top-6 right-6">
+                <i class="fas fa-times"></i>
+            </button>
+
+            <!-- Brand Header -->
+            <div class="p-6 border-b border-gray-100 shrink-0">
+                <a href="/lautan-ternak-pantura/index" class="flex items-center gap-3">
+                    <img src="/lautan-ternak-pantura/assets/images/logo.png" alt="Logo" class="h-10 w-auto">
+                    <div class="leading-tight">
+                        <span class="text-lg font-black text-brand-primary tracking-tighter uppercase block">LTP</span>
+                        <span class="text-brand-secondary text-[9px] font-bold tracking-widest uppercase block -mt-1">Lautan Ternak</span>
+                    </div>
+                </a>
             </div>
-        </div>
+
+            <!-- Navigation Links -->
+            <nav class="flex-grow p-4 space-y-1 overflow-y-auto no-scrollbar" style="scrollbar-width: none; -ms-overflow-style: none;">
+                <p class="px-4 text-[10px] font-black text-gray-400 uppercase tracking-widest mb-3">Menu Utama</p>
+                
+                <a href="/lautan-ternak-pantura/index" class="mobile-sidebar-link flex items-center gap-4 px-4 py-3 rounded-lg font-bold text-sm transition-all text-gray-500 <?php echo $is_home && strpos($current_uri, '#') === false ? 'active' : ''; ?>" data-nav="beranda">
+                    <i class="fas fa-home text-lg w-6 text-center"></i>
+                    <span>Beranda</span>
+                </a>
+                <a href="/lautan-ternak-pantura/index#keunggulan" class="mobile-sidebar-link flex items-center gap-4 px-4 py-3 rounded-lg font-bold text-sm transition-all text-gray-500" data-nav="keunggulan">
+                    <i class="fas fa-star text-lg w-6 text-center"></i>
+                    <span>Keunggulan</span>
+                </a>
+                <a href="/lautan-ternak-pantura/index#alur" class="mobile-sidebar-link flex items-center gap-4 px-4 py-3 rounded-lg font-bold text-sm transition-all text-gray-500" data-nav="alur">
+                    <i class="fas fa-route text-lg w-6 text-center"></i>
+                    <span>Cara Kerja</span>
+                </a>
+                <a href="/lautan-ternak-pantura/index#testimoni" class="mobile-sidebar-link flex items-center gap-4 px-4 py-3 rounded-lg font-bold text-sm transition-all text-gray-500" data-nav="testimoni">
+                    <i class="fas fa-comments text-lg w-6 text-center"></i>
+                    <span>Testimoni</span>
+                </a>
+                <a href="/lautan-ternak-pantura/index#galeri" class="mobile-sidebar-link flex items-center gap-4 px-4 py-3 rounded-lg font-bold text-sm transition-all text-gray-500" data-nav="galeri">
+                    <i class="fas fa-images text-lg w-6 text-center"></i>
+                    <span>Galeri</span>
+                </a>
+                <a href="/lautan-ternak-pantura/marketplace" class="mobile-sidebar-link flex items-center gap-4 px-4 py-3 rounded-lg font-bold text-sm transition-all text-gray-500 <?php echo strpos($current_uri, 'marketplace') !== false ? 'active' : ''; ?>" data-nav="marketplace">
+                    <i class="fas fa-shopping-cart text-lg w-6 text-center"></i>
+                    <span>Katalog Hewan</span>
+                </a>
+                <a href="/lautan-ternak-pantura/tabungan" class="mobile-sidebar-link flex items-center gap-4 px-4 py-3 rounded-lg font-bold text-sm transition-all text-gray-500 <?php echo strpos($current_uri, 'tabungan') !== false ? 'active' : ''; ?>" data-nav="tabungan">
+                    <i class="fas fa-gem text-lg w-6 text-center"></i>
+                    <span>Tabungan Qurban</span>
+                </a>
+
+                <div class="my-4 border-t border-gray-100"></div>
+
+                <?php if (isset($_SESSION['user_id'])): ?>
+                    <?php
+                    $dashboard_url = $_SESSION['role'] === 'customer' ? '/lautan-ternak-pantura/customer/dashboard' : '/lautan-ternak-pantura/views/' . $_SESSION['role'] . '/dashboard';
+                    ?>
+                    <a href="<?php echo $dashboard_url; ?>" class="mobile-sidebar-link flex items-center gap-4 px-4 py-3 rounded-lg font-bold text-sm transition-all text-gray-500">
+                        <i class="fas fa-th-large text-lg w-6 text-center"></i>
+                        <span>Dashboard</span>
+                    </a>
+                    <a href="/lautan-ternak-pantura/api/auth/logout" class="mobile-sidebar-link flex items-center gap-4 px-4 py-3 rounded-lg font-bold text-sm transition-all text-red-500 hover:bg-red-50">
+                        <i class="fas fa-right-from-bracket text-lg w-6 text-center"></i>
+                        <span>Keluar Sistem</span>
+                    </a>
+                <?php else: ?>
+                    <a href="/lautan-ternak-pantura/auth/login" class="flex items-center gap-4 px-4 py-3 rounded-xl font-bold text-sm transition-all bg-brand-primary text-white hover:bg-brand-dark justify-center shadow-md mx-2">
+                        <i class="fas fa-user-circle text-lg"></i>
+                        <span>Masuk / Daftar</span>
+                    </a>
+                <?php endif; ?>
+            </nav>
+        </aside>
     </nav>
 
     <script>
+        function toggleMobileMenu() {
+            const sidebar = document.getElementById('mobile-sidebar');
+            const backdrop = document.getElementById('mobile-sidebar-backdrop');
+            if (sidebar.classList.contains('-translate-x-full')) {
+                sidebar.classList.remove('-translate-x-full');
+                sidebar.classList.add('translate-x-0');
+                backdrop.classList.remove('hidden');
+                setTimeout(() => backdrop.classList.add('opacity-100'), 10);
+            } else {
+                sidebar.classList.add('-translate-x-full');
+                sidebar.classList.remove('translate-x-0');
+                backdrop.classList.remove('opacity-100');
+                setTimeout(() => backdrop.classList.add('hidden'), 300);
+            }
+        }
+
         // JS for handling active states for section anchors
         document.addEventListener('DOMContentLoaded', function() {
             const sections = ['keunggulan', 'alur', 'testimoni', 'galeri'];
@@ -298,7 +352,7 @@
                 'galeri': document.getElementById('nav-galeri')
             };
             
-            const mobileLinks = document.querySelectorAll('.mobile-nav-link');
+            const mobileLinks = document.querySelectorAll('.mobile-sidebar-link');
             const navbar = document.getElementById('main-navbar');
 
             function updateActiveLink() {
@@ -345,11 +399,9 @@
                     mobileLinks.forEach(link => {
                         const navKey = link.getAttribute('data-nav');
                         if (navKey === activeSection) {
-                            link.classList.add('bg-brand-light', 'text-brand-primary');
-                            link.classList.remove('text-gray-600');
+                            link.classList.add('active');
                         } else {
-                            link.classList.remove('bg-brand-light', 'text-brand-primary');
-                            link.classList.add('text-gray-600');
+                            link.classList.remove('active');
                         }
                     });
                 }

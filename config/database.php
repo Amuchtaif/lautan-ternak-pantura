@@ -1,5 +1,8 @@
 <?php
 
+// Set default timezone to Asia/Jakarta
+date_default_timezone_set('Asia/Jakarta');
+
 // Simple .env parser function
 function loadEnv($path) {
     if (!file_exists($path)) return;
@@ -22,6 +25,8 @@ $password = $_ENV['DB_PASS'] ?? '';
 try {
     $conn = new PDO("mysql:host={$host};dbname={$db_name}", $username, $password);
     $conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+    // Synchronize MySQL connection timezone to Asia/Jakarta (WIB)
+    $conn->exec("SET time_zone = '+07:00'");
 } catch(PDOException $exception) {
     // Silently continue if database is not set up yet
     // echo "Connection error: " . $exception->getMessage();

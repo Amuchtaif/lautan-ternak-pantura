@@ -561,6 +561,23 @@ require_once 'views/admin/includes/sidebar.php';
                     </div>
                 </div>
 
+                <!-- Destination Cash Account Selector -->
+                <div class="space-y-1.5">
+                    <label class="text-[10px] font-black text-gray-400 uppercase tracking-widest px-1">Rekening Kas Penerima Pembayaran</label>
+                    <div class="relative">
+                        <select name="cash_account_id" required
+                            class="w-full px-5 py-3.5 bg-white border border-gray-100 rounded-xl outline-none focus:border-brand-primary transition-all font-bold text-xs appearance-none cursor-pointer">
+                            <option value="">-- Pilih Rekening Kas Penerima --</option>
+                            <?php foreach ($accountsList as $acc): ?>
+                                <option value="<?php echo $acc['id']; ?>">
+                                    <?php echo htmlspecialchars($acc['name']); ?> (Saldo: Rp <?php echo number_format($acc['current_balance'], 0, ',', '.'); ?>)
+                                </option>
+                            <?php endforeach; ?>
+                        </select>
+                        <i class="fas fa-chevron-down absolute right-5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none text-xs"></i>
+                    </div>
+                </div>
+
                 <!-- Row 3: Optional Payment Proof File Input -->
                 <div class="space-y-1.5">
                     <label class="text-[10px] font-black text-gray-400 uppercase tracking-widest px-1">Upload Bukti Pembayaran (Opsional)</label>

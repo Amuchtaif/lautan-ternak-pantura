@@ -52,6 +52,26 @@ try {
 
     if ($status === 'verified') {
         $planModel->applyVerifiedDeposit((int)$transaction['savings_plan_id'], (float)$transaction['amount']);
+
+        // Log into general cash transactions ledger using the default bank account
+        $bankStmt = $conn->query("SELECT id FROM cash_accounts WHERE status = 'active' ORDER BY type = 'bank' DESC, id ASC LIMIT 1");
+        $defaultBankId = $bankStmt->fetchColumn();
+        if ($defaultBankId) {
+            require_once '../../models/CashTransaction.php';
+            $cashTx = new CashTransaction($conn);
+            
+            $desc = "Setoran Tabungan Qurban " . ($transaction['plan_code'] ?? '') . " (" . ($transaction['customer_name'] ?? 'Pelanggan') . ")";
+            $cashTx->record(
+                $defaultBankId,
+                'PENJUALAN_HEWAN', // as specified in the rules
+                'savings_transactions',
+                $id,
+                $desc,
+                $transaction['amount'], // cash_in
+                0,                      // cash_out
+                $_SESSION['user_id']
+            );
+        }
     }
 
     $conn->commit();

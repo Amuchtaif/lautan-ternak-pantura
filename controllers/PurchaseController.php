@@ -40,6 +40,11 @@ class PurchaseController {
         $livestockModel = new Livestock($db);
         $livestockList = $livestockModel->getAll();
 
+        // Fetch active cash accounts for source dropdown selection
+        require_once 'models/CashAccount.php';
+        $accountModel = new CashAccount($db);
+        $accountsList = $accountModel->getActiveAccounts();
+
         require 'views/admin/purchases.php';
     }
 
@@ -224,7 +229,8 @@ class PurchaseController {
                     'amount_paid' => $amountPaid,
                     'notes' => $notes,
                     'created_by' => $_SESSION['user_id'],
-                    'purchased_at' => $purchasedAt ?: date('Y-m-d H:i:s')
+                    'purchased_at' => $purchasedAt ?: date('Y-m-d H:i:s'),
+                    'cash_account_id' => intval($_POST['cash_account_id'] ?? 0)
                 ];
 
                 if ($purchaseModel->create($purchaseData)) {
@@ -242,6 +248,11 @@ class PurchaseController {
 
         $livestockModel = new Livestock($db);
         $livestockList = $livestockModel->getAll(); // Load all livestock for selection
+
+        // Fetch active cash accounts
+        require_once 'models/CashAccount.php';
+        $accountModel = new CashAccount($db);
+        $accountsList = $accountModel->getActiveAccounts();
         
         require 'views/admin/purchase_create.php';
     }
@@ -345,6 +356,7 @@ class PurchaseController {
             $rawAmount = $_POST['payment_amount'] ?? '';
             $amount = floatval(preg_replace('/\D/', '', $rawAmount));
             $paymentDate = trim($_POST['payment_date'] ?? '');
+            $accountId = intval($_POST['cash_account_id'] ?? 0);
             
             try {
                 if ($purchaseId <= 0) {
@@ -353,9 +365,12 @@ class PurchaseController {
                 if ($amount <= 0) {
                     throw new Exception("Jumlah pembayaran harus lebih dari 0.");
                 }
+                if ($accountId <= 0) {
+                    throw new Exception("Rekening kas sumber pembayaran wajib dipilih.");
+                }
                 
                 $purchaseModel = new Purchase($db);
-                if ($purchaseModel->recordPayment($purchaseId, $amount, $paymentDate)) {
+                if ($purchaseModel->recordPayment($purchaseId, $amount, $paymentDate, $accountId)) {
                     $_SESSION['success_msg'] = "Pembayaran cicilan / pelunasan pembelian berhasil dicatat!";
                 } else {
                     throw new Exception("Gagal mencatat pembayaran.");

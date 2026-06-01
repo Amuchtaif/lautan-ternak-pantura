@@ -106,6 +106,23 @@ require_once 'views/admin/includes/sidebar.php';
                         </div>
                     </div>
 
+                    <!-- Rekening Kas Sumber Pembayaran -->
+                    <div class="space-y-2">
+                        <label class="text-[10px] font-black text-gray-400 uppercase tracking-widest px-1">Pilih Rekening Kas Sumber Pembayaran</label>
+                        <div class="relative">
+                            <select name="cash_account_id" required
+                                class="w-full px-6 py-4 bg-gray-50 border-2 border-transparent rounded-2xl outline-none focus:border-brand-primary/20 focus:bg-white transition-all font-bold text-sm appearance-none cursor-pointer">
+                                <option value="">-- PILIH REKENING KAS / BANK --</option>
+                                <?php foreach ($accountsList as $acc): ?>
+                                    <option value="<?php echo $acc['id']; ?>">
+                                        <?php echo htmlspecialchars($acc['name']); ?> (Saldo: Rp <?php echo number_format($acc['current_balance'], 0, ',', '.'); ?>)
+                                    </option>
+                                <?php endforeach; ?>
+                            </select>
+                            <i class="fas fa-chevron-down absolute right-6 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none text-xs"></i>
+                        </div>
+                    </div>
+
                     <!-- Pilihan Hewan dari Database (Hanya Tampil jika Existing) -->
                     <div id="existing-livestock-field" class="space-y-6 hidden">
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">

@@ -91,6 +91,20 @@ try {
         }
     }
 
+    // Fetch Stage 1 Financial Stage Metrics
+    $stmt = $conn->query("SELECT SUM(current_balance) FROM cash_accounts WHERE status = 'active'");
+    $totalCashBalance = $stmt ? (float)$stmt->fetchColumn() : 0;
+
+    $stmt = $conn->query("SELECT SUM(amount) FROM investor_funds WHERE status = 'active'");
+    $totalActiveInvestorCapital = $stmt ? (float)$stmt->fetchColumn() : 0;
+
+    $stmt = $conn->query("SELECT SUM(amount) FROM operational_expenses WHERE MONTH(date) = MONTH(CURRENT_DATE()) AND YEAR(date) = YEAR(CURRENT_DATE())");
+    $monthlyOperationalExpenses = $stmt ? (float)$stmt->fetchColumn() : 0;
+
+    $stmt = $conn->query("SELECT SUM(payment_amount) FROM sale_payments WHERE payment_status = 'verified' AND MONTH(created_at) = MONTH(CURRENT_DATE()) AND YEAR(created_at) = YEAR(CURRENT_DATE())");
+    $monthlySales = $stmt ? (float)$stmt->fetchColumn() : 0;
+
+
 } catch (PDOException $e) {
     $errorMsg = $e->getMessage();
     $categorySales = ['Sapi' => 0, 'Kambing' => 0, 'Domba' => 0, 'Lainnya' => 0];
@@ -168,6 +182,7 @@ try {
 
             <!-- Quick Stats -->
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                <!-- Total Pengguna -->
                 <div
                     class="bg-white p-6 rounded-2xl shadow-sm border border-gray-50 hover:shadow-xl hover:shadow-brand-primary/5 transition-all group">
                     <div class="flex items-center justify-between mb-4">
@@ -182,6 +197,7 @@ try {
                     <p class="text-3xl font-black text-gray-900 mt-1"><?php echo number_format($totalUsers); ?></p>
                 </div>
 
+                <!-- Hewan Ternak -->
                 <div
                     class="bg-white p-6 rounded-2xl shadow-sm border border-gray-50 hover:shadow-xl hover:shadow-blue-500/5 transition-all group">
                     <div class="flex items-center justify-between mb-4">
@@ -197,6 +213,7 @@ try {
                         <small class="text-sm font-bold">Ekor</small></p>
                 </div>
 
+                <!-- Perlu Verifikasi -->
                 <div
                     class="bg-white p-6 rounded-2xl shadow-sm border border-gray-50 hover:shadow-xl hover:shadow-amber-500/5 transition-all group">
                     <div class="flex items-center justify-between mb-4">
@@ -212,6 +229,7 @@ try {
                             class="text-sm font-bold">Data</small></p>
                 </div>
 
+                <!-- Tabungan Masuk -->
                 <div
                     class="bg-white p-6 rounded-2xl shadow-sm border border-gray-50 hover:shadow-xl hover:shadow-purple-500/5 transition-all group">
                     <div class="flex items-center justify-between mb-4">
@@ -224,6 +242,54 @@ try {
                     </div>
                     <p class="text-xs font-bold text-gray-400 uppercase tracking-widest">Tabungan Masuk</p>
                     <p class="text-2xl font-black text-gray-900 mt-1">Rp <?php echo number_format($totalSavings, 0, ',', '.'); ?></p>
+                </div>
+
+                <!-- Total Saldo Kas -->
+                <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-50 hover:shadow-xl hover:shadow-emerald-500/5 transition-all group">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="w-12 h-12 rounded-2xl bg-emerald-500/10 text-emerald-600 flex items-center justify-center text-xl group-hover:scale-110 transition-transform">
+                            <i class="fas fa-chart-line"></i>
+                        </div>
+                        <span class="text-[10px] font-black text-emerald-500 bg-emerald-50 px-2 py-1 rounded-lg">Kas</span>
+                    </div>
+                    <p class="text-xs font-bold text-gray-400 uppercase tracking-widest">Total Saldo Kas</p>
+                    <p class="text-2xl font-black text-gray-900 mt-1">Rp <?php echo number_format($totalCashBalance, 0, ',', '.'); ?></p>
+                </div>
+
+                <!-- Modal Investor Aktif -->
+                <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-50 hover:shadow-xl hover:shadow-brand-primary/5 transition-all group">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="w-12 h-12 rounded-2xl bg-brand-primary/10 text-brand-primary flex items-center justify-center text-xl group-hover:scale-110 transition-transform">
+                            <i class="fas fa-hand-holding-dollar"></i>
+                        </div>
+                        <span class="text-[10px] font-black text-brand-primary bg-brand-light px-2 py-1 rounded-lg">Investor</span>
+                    </div>
+                    <p class="text-xs font-bold text-gray-400 uppercase tracking-widest">Modal Investor Aktif</p>
+                    <p class="text-2xl font-black text-gray-900 mt-1">Rp <?php echo number_format($totalActiveInvestorCapital, 0, ',', '.'); ?></p>
+                </div>
+
+                <!-- Biaya Operasional (Bulan Ini) -->
+                <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-50 hover:shadow-xl hover:shadow-red-500/5 transition-all group">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="w-12 h-12 rounded-2xl bg-red-500/10 text-red-500 flex items-center justify-center text-xl group-hover:scale-110 transition-transform">
+                            <i class="fas fa-money-bill-wave"></i>
+                        </div>
+                        <span class="text-[10px] font-black text-red-500 bg-red-50 px-2 py-1 rounded-lg">Operasional</span>
+                    </div>
+                    <p class="text-xs font-bold text-gray-400 uppercase tracking-widest">Biaya Operasional (Bulan Ini)</p>
+                    <p class="text-2xl font-black text-gray-900 mt-1">Rp <?php echo number_format($monthlyOperationalExpenses, 0, ',', '.'); ?></p>
+                </div>
+
+                <!-- Penjualan (Bulan Ini) -->
+                <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-50 hover:shadow-xl hover:shadow-purple-500/5 transition-all group">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="w-12 h-12 rounded-2xl bg-purple-500/10 text-purple-500 flex items-center justify-center text-xl group-hover:scale-110 transition-transform">
+                            <i class="fas fa-coins"></i>
+                        </div>
+                        <span class="text-[10px] font-black text-purple-500 bg-purple-50 px-2 py-1 rounded-lg">Penjualan</span>
+                    </div>
+                    <p class="text-xs font-bold text-gray-400 uppercase tracking-widest">Penjualan (Bulan Ini)</p>
+                    <p class="text-2xl font-black text-gray-900 mt-1">Rp <?php echo number_format($monthlySales, 0, ',', '.'); ?></p>
                 </div>
             </div>
 
@@ -290,10 +356,6 @@ try {
                         <p class="text-xs text-gray-400 font-bold mt-1">Segera periksa bukti transfer untuk memperbarui
                             status pesanan.</p>
                     </div>
-                    <button onclick="showSuccessNotification('Sistem sinkron dengan database!')"
-                        class="bg-brand-primary/5 text-brand-primary px-5 py-2.5 rounded-2xl text-xs font-black hover:bg-brand-primary hover:text-white transition-all">
-                        Refresh Data
-                    </button>
                 </div>
 
                 <div class="overflow-x-auto">

@@ -96,6 +96,30 @@ class Sale {
                     $data['initial_payment_status'] ?? 'pending',
                     $data['created_by']
                 ]);
+
+                // Record Cash Transaction if verified instantly (manual admin sale)
+                if (isset($data['initial_payment_status']) && $data['initial_payment_status'] === 'verified') {
+                    $cashAccountId = intval($data['cash_account_id'] ?? 0);
+                    if ($cashAccountId <= 0) {
+                        throw new Exception("Rekening kas penerima pembayaran wajib dipilih.");
+                    }
+
+                    require_once 'models/CashTransaction.php';
+                    $cashTx = new CashTransaction($this->conn);
+                    
+                    $desc = "Penjualan " . ($livestock['breed'] ?: 'Hewan') . " - " . ($livestock['livestock_code'] ?? 'Stok') . " (" . $data['customer_name'] . ")";
+                    
+                    $cashTx->record(
+                        $cashAccountId,
+                        'PENJUALAN_HEWAN',
+                        'sales',
+                        $saleId,
+                        $desc,
+                        $data['payment_amount'], // cash_in
+                        0,                       // cash_out
+                        $data['created_by']
+                    );
+                }
             }
 
             // Reduce livestock stock
