@@ -201,7 +201,7 @@ require_once __DIR__ . '/../../includes/header.php';
                 </div>
 
                 <!-- Add New Payment Form (Installment / Settlement) -->
-                <?php if ($remaining > 0): ?>
+                <?php if ($remaining > 0 && $sale['payment_type'] !== 'lunas'): ?>
                     <div class="no-print bg-white rounded-3xl shadow-sm border border-gray-100 p-8 space-y-6">
                         <h3 class="text-lg font-black text-gray-900 tracking-tight flex items-center gap-2">
                             <i class="fas fa-paper-plane text-brand-primary"></i> Unggah Bukti Cicilan / Pelunasan
