@@ -91,9 +91,12 @@ class SavingsPlan {
             : "DATE_ADD(DATE(sp.created_at), INTERVAL GREATEST(1, CEIL(sp.target_amount / NULLIF(sp.monthly_installment, 0))) MONTH)";
         $notes = $this->hasColumn($this->table, 'notes') ? 'sp.notes' : 'NULL';
         $updatedAt = $this->hasColumn($this->table, 'updated_at') ? 'sp.updated_at' : 'sp.created_at';
+        $programType = $this->hasColumn($this->table, 'program_type') ? 'sp.program_type' : "'kambing'";
+        $groupId = $this->hasColumn($this->table, 'group_id') ? 'sp.group_id' : 'NULL';
 
         return "
             sp.id,
+            sp.livestock_id,
             {$planCode} AS plan_code,
             sp.customer_id,
             {$livestockTarget} AS livestock_target,
@@ -106,7 +109,9 @@ class SavingsPlan {
             sp.status,
             {$notes} AS notes,
             sp.created_at,
-            {$updatedAt} AS updated_at
+            {$updatedAt} AS updated_at,
+            {$programType} AS program_type,
+            {$groupId} AS group_id
         ";
     }
 
@@ -127,11 +132,11 @@ class SavingsPlan {
             }
 
             if ($this->hasColumn($this->table, 'livestock_id')) {
-                $query = "INSERT INTO {$this->table} (customer_id, livestock_id, target_amount, monthly_installment, status) VALUES (?, ?, ?, ?, 'active')";
+                $query = "INSERT INTO {$this->table} (customer_id, livestock_id, target_amount, monthly_installment, status) VALUES (?, ?, ?, ?, 'Aktif')";
                 $stmt = $this->conn->prepare($query);
                 $stmt->execute([$data['customer_id'], $livestockId ?: 0, $targetAmount, $monthlyTarget]);
             } else {
-                $query = "INSERT INTO {$this->table} (customer_id, target_amount, monthly_installment, status) VALUES (?, ?, ?, 'active')";
+                $query = "INSERT INTO {$this->table} (customer_id, target_amount, monthly_installment, status) VALUES (?, ?, ?, 'Aktif')";
                 $stmt = $this->conn->prepare($query);
                 $stmt->execute([$data['customer_id'], $targetAmount, $monthlyTarget]);
             }
@@ -140,7 +145,7 @@ class SavingsPlan {
         }
 
         $columns = ['plan_code', 'customer_id', 'livestock_target', 'target_amount', 'current_amount', 'monthly_target', 'duration_month', 'start_date', 'target_date', 'status', 'notes'];
-        $values = [$this->generatePlanCode(), $data['customer_id'], $data['livestock_target'], $targetAmount, 0, $monthlyTarget, $duration, $startDate, $targetDate, 'active', $data['notes'] ?? null];
+        $values = [$this->generatePlanCode(), $data['customer_id'], $data['livestock_target'], $targetAmount, 0, $monthlyTarget, $duration, $startDate, $targetDate, 'Aktif', $data['notes'] ?? null];
 
         if ($this->hasColumn($this->table, 'livestock_id')) {
             $columns[] = 'livestock_id';
@@ -149,6 +154,14 @@ class SavingsPlan {
         if ($this->hasColumn($this->table, 'target_type')) {
             $columns[] = 'target_type';
             $values[] = $data['target_type'] ?? (!empty($data['livestock_id']) ? 'livestock' : 'manual');
+        }
+        if ($this->hasColumn($this->table, 'program_type')) {
+            $columns[] = 'program_type';
+            $values[] = $data['program_type'] ?? 'kambing';
+        }
+        if ($this->hasColumn($this->table, 'group_id')) {
+            $columns[] = 'group_id';
+            $values[] = $data['group_id'] ?? null;
         }
 
         $placeholders = implode(', ', array_fill(0, count($columns), '?'));
@@ -227,7 +240,7 @@ class SavingsPlan {
             $txStatusColumn = $this->transactionsUseNewSchema() ? 'transaction_status' : 'status';
             $stmt = $this->conn->prepare("
                 SELECT
-                    COUNT(CASE WHEN sp.status = 'active' THEN 1 END) AS active_plans,
+                    COUNT(CASE WHEN sp.status IN ('active', 'Aktif', 'Masuk Kelompok') THEN 1 END) AS active_plans,
                     COALESCE(SUM(CASE WHEN st.{$txStatusColumn} = 'verified' THEN st.amount ELSE 0 END), 0) AS total_saved,
                     COALESCE(SUM(DISTINCT sp.target_amount), 0) AS total_target,
                     NULL AS nearest_target_date
@@ -241,10 +254,10 @@ class SavingsPlan {
 
         $stmt = $this->conn->prepare("
             SELECT
-                COUNT(CASE WHEN status = 'active' THEN 1 END) AS active_plans,
+                COUNT(CASE WHEN status IN ('active', 'Aktif', 'Masuk Kelompok') THEN 1 END) AS active_plans,
                 COALESCE(SUM(current_amount), 0) AS total_saved,
                 COALESCE(SUM(target_amount), 0) AS total_target,
-                MIN(CASE WHEN status = 'active' THEN target_date END) AS nearest_target_date
+                MIN(CASE WHEN status IN ('active', 'Aktif', 'Masuk Kelompok') THEN target_date END) AS nearest_target_date
             FROM {$this->table}
             WHERE customer_id = ?
         ");
@@ -260,7 +273,7 @@ class SavingsPlan {
                 SELECT
                     COUNT(DISTINCT sp.customer_id) AS total_customers,
                     COALESCE(SUM(CASE WHEN st.{$txStatusColumn} = 'verified' THEN st.amount ELSE 0 END), 0) AS total_collected,
-                    COUNT(DISTINCT CASE WHEN sp.status = 'completed' THEN sp.id END) AS completed_plans,
+                    COUNT(DISTINCT CASE WHEN sp.status IN ('completed', 'Target Tercapai', 'Masuk Kelompok', 'Selesai') THEN sp.id END) AS completed_plans,
                     0 AS due_soon
                 FROM {$this->table} sp
                 LEFT JOIN savings_transactions st ON st.{$txPlanColumn} = sp.id
@@ -272,11 +285,80 @@ class SavingsPlan {
             SELECT
                 COUNT(DISTINCT customer_id) AS total_customers,
                 COALESCE(SUM(current_amount), 0) AS total_collected,
-                COUNT(CASE WHEN status = 'completed' THEN 1 END) AS completed_plans,
-                COUNT(CASE WHEN status = 'active' AND target_date BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL 30 DAY) THEN 1 END) AS due_soon
+                COUNT(CASE WHEN status IN ('completed', 'Target Tercapai', 'Masuk Kelompok', 'Selesai') THEN 1 END) AS completed_plans,
+                COUNT(CASE WHEN status IN ('active', 'Aktif', 'Masuk Kelompok') AND target_date BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL 30 DAY) THEN 1 END) AS due_soon
             FROM {$this->table}
         ");
         return $stmt->fetch(PDO::FETCH_ASSOC);
+    }
+
+    public function addNotification($userId, $message) {
+        $stmt = $this->conn->prepare("INSERT INTO notifications (user_id, message, is_read, created_at) VALUES (?, ?, 0, NOW())");
+        return $stmt->execute([(int)$userId, $message]);
+    }
+
+    public function assignToGroup($planId) {
+        $plan = $this->getById($planId);
+        if (!$plan || $plan['program_type'] !== 'sapi_patungan') {
+            return false;
+        }
+
+        // 1. Send notification that target is reached
+        $this->addNotification($plan['customer_id'], "Selamat! Target tabungan Anda untuk program " . $plan['livestock_target'] . " (" . $plan['plan_code'] . ") telah tercapai.");
+
+        // 2. Find group that has status 'Menunggu Anggota' and has < 7 members
+        $stmtGroup = $this->conn->prepare("
+            SELECT g.*, (SELECT COUNT(*) FROM savings_plans WHERE group_id = g.id) AS member_count
+            FROM savings_groups g
+            WHERE g.status = 'Menunggu Anggota'
+            HAVING member_count < 7
+            ORDER BY g.created_at ASC
+            LIMIT 1
+        ");
+        $stmtGroup->execute();
+        $group = $stmtGroup->fetch(PDO::FETCH_ASSOC);
+
+        if ($group) {
+            $groupId = $group['id'];
+            $groupCode = $group['group_code'];
+            $newMemberCount = $group['member_count'] + 1;
+        } else {
+            // Create a new group
+            $year = date('Y');
+            $stmtSeq = $this->conn->prepare("SELECT COUNT(*) FROM savings_groups WHERE group_code LIKE ?");
+            $stmtSeq->execute(["SQ-{$year}-%"]);
+            $count = (int)$stmtSeq->fetchColumn() + 1;
+            $groupCode = sprintf("SQ-%s-%03d", $year, $count);
+
+            $stmtNewGroup = $this->conn->prepare("INSERT INTO savings_groups (group_code, status) VALUES (?, 'Menunggu Anggota')");
+            $stmtNewGroup->execute([$groupCode]);
+            $groupId = $this->conn->lastInsertId();
+            $newMemberCount = 1;
+        }
+
+        // Assign participant to this group
+        $stmtAssign = $this->conn->prepare("UPDATE savings_plans SET group_id = ?, status = 'Masuk Kelompok' WHERE id = ?");
+        $stmtAssign->execute([$groupId, $planId]);
+
+        // Send notification to this user
+        $this->addNotification($plan['customer_id'], "Anda telah berhasil bergabung ke kelompok qurban " . $groupCode . ".");
+
+        // If group is full (7 members), update group status to 'Penuh' and notify all members
+        if ($newMemberCount >= 7) {
+            $stmtUpdateGroup = $this->conn->prepare("UPDATE savings_groups SET status = 'Penuh' WHERE id = ?");
+            $stmtUpdateGroup->execute([$groupId]);
+
+            // Fetch all members of this group to send notifications
+            $stmtMembers = $this->conn->prepare("SELECT customer_id FROM savings_plans WHERE group_id = ?");
+            $stmtMembers->execute([$groupId]);
+            $members = $stmtMembers->fetchAll(PDO::FETCH_ASSOC);
+
+            foreach ($members as $member) {
+                $this->addNotification($member['customer_id'], "Kelompok qurban Anda (" . $groupCode . ") sudah penuh! Menunggu proses penetapan hewan qurban oleh panitia.");
+            }
+        }
+
+        return true;
     }
 
     public function applyVerifiedDeposit($planId, $amount) {
@@ -286,16 +368,23 @@ class SavingsPlan {
         }
 
         $newAmount = (float)$plan['current_amount'] + (float)$amount;
-        $newStatus = $newAmount >= (float)$plan['target_amount'] ? 'completed' : $plan['status'];
+        $targetReached = $newAmount >= (float)$plan['target_amount'];
 
-        if ($this->hasColumn($this->table, 'current_amount')) {
-            $stmt = $this->conn->prepare("UPDATE {$this->table} SET current_amount = ?, status = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?");
-            return $stmt->execute([$newAmount, $newStatus, (int)$planId]);
+        $newStatus = $plan['status'];
+        if ($targetReached && in_array($plan['status'], ['Aktif', 'active', 'overdue'], true)) {
+            $newStatus = 'Target Tercapai';
         }
 
-        if ($newStatus === 'completed') {
-            $stmt = $this->conn->prepare("UPDATE {$this->table} SET status = 'completed' WHERE id = ?");
-            return $stmt->execute([(int)$planId]);
+        $stmt = $this->conn->prepare("UPDATE {$this->table} SET current_amount = ?, status = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?");
+        $stmt->execute([$newAmount, $newStatus, (int)$planId]);
+
+        // Trigger auto grouping if target reached and program is sapi_patungan
+        if ($targetReached && in_array($plan['status'], ['Aktif', 'active', 'overdue'], true)) {
+            if ($plan['program_type'] === 'sapi_patungan') {
+                $this->assignToGroup($planId);
+            } else {
+                $this->addNotification($plan['customer_id'], "Selamat! Target tabungan Anda untuk program " . $plan['livestock_target'] . " (" . $plan['plan_code'] . ") telah tercapai.");
+            }
         }
 
         return true;

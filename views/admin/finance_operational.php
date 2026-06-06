@@ -21,6 +21,25 @@ foreach ($expenses as $exp) {
     require_once 'views/admin/includes/topbar.php';
     ?>
     <main class="p-8 space-y-8 flex-grow">
+        <!-- Alerts -->
+        <?php if (isset($_SESSION['success_msg'])): ?>
+            <script>
+                document.addEventListener('DOMContentLoaded', function () {
+                    showToast("<?php echo addslashes(htmlspecialchars($_SESSION['success_msg'])); ?>", "success");
+                });
+            </script>
+            <?php unset($_SESSION['success_msg']); ?>
+        <?php endif; ?>
+
+        <?php if (isset($_SESSION['error'])): ?>
+            <script>
+                document.addEventListener('DOMContentLoaded', function () {
+                    showToast("<?php echo addslashes(htmlspecialchars($_SESSION['error'])); ?>", "error");
+                });
+            </script>
+            <?php unset($_SESSION['error']); ?>
+        <?php endif; ?>
+
         <!-- Header Section -->
         <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
             <div class="flex items-center gap-3">

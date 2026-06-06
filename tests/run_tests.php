@@ -179,6 +179,45 @@ try {
         )
     ");
 
+    $db->exec("
+        CREATE TABLE cash_accounts (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name VARCHAR(150) NOT NULL,
+            type VARCHAR(50) NOT NULL DEFAULT 'bank',
+            account_number VARCHAR(100) DEFAULT NULL,
+            bank_name VARCHAR(100) DEFAULT NULL,
+            opening_balance DECIMAL(15,2) NOT NULL DEFAULT 0,
+            current_balance DECIMAL(15,2) NOT NULL DEFAULT 0,
+            status VARCHAR(50) DEFAULT 'active',
+            description TEXT DEFAULT NULL,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        )
+    ");
+
+    $db->exec("
+        CREATE TABLE cash_transactions (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            cash_account_id INTEGER NOT NULL,
+            transaction_type VARCHAR(100) NOT NULL,
+            reference_type VARCHAR(100) NOT NULL,
+            reference_id INTEGER NOT NULL,
+            transaction_date DATETIME DEFAULT CURRENT_TIMESTAMP,
+            description TEXT DEFAULT NULL,
+            cash_in DECIMAL(15,2) NOT NULL DEFAULT 0,
+            cash_out DECIMAL(15,2) NOT NULL DEFAULT 0,
+            balance_after DECIMAL(15,2) NOT NULL DEFAULT 0,
+            created_by INTEGER NOT NULL,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        )
+    ");
+
+    $db->exec("
+        INSERT INTO cash_accounts (id, name, type, current_balance)
+        VALUES (1, 'BCA Operasional', 'bank', 100000000.00)
+    ");
+
 } catch (Exception $e) {
     echo ANSI_RED . "❌ GAGAL MEMBUAT DATABASE ISOLASI: " . $e->getMessage() . ANSI_RESET . "\n";
     exit(1);

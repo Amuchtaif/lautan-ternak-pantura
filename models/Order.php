@@ -121,7 +121,7 @@ class Order {
         }
 
         if ($search) {
-            $query .= " AND (o.order_code LIKE ? OR u.name LIKE ? OR l.name LIKE ?)";
+            $query .= " AND (o.order_code LIKE ? OR u.name LIKE ? OR l.breed LIKE ?)";
             $params[] = "%$search%";
             $params[] = "%$search%";
             $params[] = "%$search%";

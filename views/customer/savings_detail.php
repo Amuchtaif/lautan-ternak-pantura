@@ -7,7 +7,7 @@
                 <h1 class="text-2xl font-black text-gray-900 mt-3"><?php echo htmlspecialchars($plan['livestock_target']); ?></h1>
                 <p class="text-sm text-gray-500"><?php echo htmlspecialchars($plan['plan_code']); ?> - Target <?php echo date('d M Y', strtotime($plan['target_date'])); ?></p>
             </div>
-            <?php if (in_array($plan['status'], ['active', 'overdue'], true)): ?>
+            <?php if (in_array($plan['status'], ['Aktif', 'active', 'overdue'], true)): ?>
                 <button onclick="openDepositModal()" class="bg-brand-primary text-white px-5 py-3 rounded-lg font-bold hover:bg-brand-dark transition">
                     <i class="fas fa-upload mr-2"></i>Setor Tabungan
                 </button>
@@ -47,6 +47,32 @@
             </div>
         </div>
 
+        <?php if (!empty($group)): ?>
+            <div class="bg-white border border-gray-100 rounded-lg p-6 space-y-4">
+                <div class="flex items-center gap-3 pb-3 border-b border-gray-50">
+                    <span class="flex h-8 w-8 items-center justify-center rounded-lg bg-brand-light text-brand-primary"><i class="fas fa-users text-sm"></i></span>
+                    <div>
+                        <h2 class="font-black text-gray-900 font-bold">Informasi Kelompok Qurban Sapi</h2>
+                        <p class="text-xs text-gray-500">Anda tergabung dalam kelompok patungan berikut.</p>
+                    </div>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
+                    <div>
+                        <p class="text-xs font-black text-gray-400 uppercase">Kode Kelompok</p>
+                        <p class="text-lg font-black text-gray-900 mt-1"><?php echo htmlspecialchars($group['group_code']); ?></p>
+                    </div>
+                    <div>
+                        <p class="text-xs font-black text-gray-400 uppercase">Anggota Saat Ini</p>
+                        <p class="text-lg font-black text-gray-900 mt-1"><?php echo (int)$group['member_count']; ?> / 7 Orang</p>
+                    </div>
+                    <div>
+                        <p class="text-xs font-black text-gray-400 uppercase">Status Kelompok</p>
+                        <p class="text-lg font-black text-brand-primary mt-1"><?php echo htmlspecialchars($group['status']); ?></p>
+                    </div>
+                </div>
+            </div>
+        <?php endif; ?>
+
         <div class="bg-white border border-gray-100 rounded-lg overflow-hidden">
             <div class="px-6 py-5 border-b border-gray-100">
                 <h2 class="font-black text-gray-900">Riwayat Setoran</h2>
@@ -68,7 +94,16 @@
                         <?php else: ?>
                             <?php foreach ($transactions as $trx): ?>
                                 <tr>
-                                    <td class="px-6 py-4 text-sm font-bold text-gray-600"><?php echo date('d M Y H:i', strtotime($trx['created_at'])); ?></td>
+                                    <td class="px-6 py-4 text-sm font-bold text-gray-600">
+                                        <?php
+                                            $notes = $trx['notes'] ?? '';
+                                            $displayDate = $trx['created_at'];
+                                            if (preg_match('/Tanggal setor:\s*([0-9]{4}-[0-9]{2}-[0-9]{2})/i', $notes, $matches)) {
+                                                $displayDate = $matches[1] . ' ' . date('H:i:s', strtotime($trx['created_at']));
+                                            }
+                                            echo date('d M Y H:i', strtotime($displayDate));
+                                        ?>
+                                    </td>
                                     <td class="px-6 py-4 text-sm font-black text-gray-900">Rp <?php echo number_format($trx['amount'], 0, ',', '.'); ?></td>
                                     <td class="px-6 py-4 text-sm text-gray-600"><?php echo htmlspecialchars($trx['payment_method']); ?></td>
                                     <td class="px-6 py-4"><span class="px-3 py-1 rounded-full text-[10px] font-black uppercase <?php echo $trx['transaction_status'] === 'verified' ? 'bg-green-50 text-green-600' : ($trx['transaction_status'] === 'rejected' ? 'bg-red-50 text-red-600' : 'bg-amber-50 text-amber-600'); ?>"><?php echo htmlspecialchars($trx['transaction_status']); ?></span></td>

@@ -25,7 +25,7 @@ $defaultTargetDate = date('Y-m-d', strtotime('+10 months'));
         <?php if (empty($livestocks)): ?>
             <div class="bg-white rounded-2xl border border-dashed border-gray-200 p-10 text-center">
                 <div class="mx-auto h-14 w-14 rounded-2xl bg-gray-100 text-gray-400 flex items-center justify-center mb-4">
-                    <i class="fas fa-cow text-2xl"></i>
+                    <i class="fas fa-leaf text-2xl"></i>
                 </div>
                 <h2 class="text-xl font-black text-gray-900">Belum ada hewan tersedia</h2>
                 <p class="text-sm text-gray-500 mt-2">Form pendaftaran akan aktif setelah admin menambahkan hewan berstatus tersedia.</p>
@@ -67,7 +67,45 @@ $defaultTargetDate = date('Y-m-d', strtotime('+10 months'));
                     <section class="bg-white border border-gray-100 rounded-2xl p-6 sm:p-8">
                         <div class="flex items-center gap-3 mb-6">
                             <div class="h-11 w-11 rounded-xl bg-brand-light text-brand-primary flex items-center justify-center">
-                                <i class="fas fa-cow"></i>
+                                <i class="fas fa-hands-helping"></i>
+                            </div>
+                            <div>
+                                <h2 class="text-xl font-black text-gray-900">Pilihan Program Qurban</h2>
+                                <p class="text-xs text-gray-500">Pilih skema qurban individu atau patungan kelompok.</p>
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-2 gap-4">
+                            <label class="program-card cursor-pointer rounded-2xl border bg-white p-5 hover:border-brand-primary/40 transition-all border-brand-primary ring-4 ring-brand-primary/10">
+                                <input type="radio" name="program_type" value="kambing" checked class="sr-only">
+                                <div class="flex items-center gap-3">
+                                    <div class="h-10 w-10 rounded-xl bg-amber-500/15 text-amber-600 flex items-center justify-center">
+                                        <i class="fas fa-cloud"></i>
+                                    </div>
+                                    <div>
+                                        <p class="font-black text-gray-900 leading-tight">Qurban Kambing</p>
+                                        <p class="text-[10px] font-bold text-gray-400 uppercase mt-0.5">Individu (1/1)</p>
+                                    </div>
+                                </div>
+                            </label>
+                            <label class="program-card cursor-pointer rounded-2xl border bg-white p-5 hover:border-brand-primary/40 transition-all border-gray-100">
+                                <input type="radio" name="program_type" value="sapi_patungan" class="sr-only">
+                                <div class="flex items-center gap-3">
+                                    <div class="h-10 w-10 rounded-xl bg-blue-500/15 text-blue-600 flex items-center justify-center">
+                                        <i class="fas fa-leaf"></i>
+                                    </div>
+                                    <div>
+                                        <p class="font-black text-gray-900 leading-tight">Sapi Patungan</p>
+                                        <p class="text-[10px] font-bold text-gray-400 uppercase mt-0.5">Patungan Kelompok (1/7)</p>
+                                    </div>
+                                </div>
+                            </label>
+                        </div>
+                    </section>
+
+                    <section class="bg-white border border-gray-100 rounded-2xl p-6 sm:p-8">
+                        <div class="flex items-center gap-3 mb-6">
+                            <div class="h-11 w-11 rounded-xl bg-brand-light text-brand-primary flex items-center justify-center">
+                                <i class="fas fa-leaf"></i>
                             </div>
                             <div>
                                 <h2 class="text-xl font-black text-gray-900">Pilihan Target Hewan Qurban</h2>
@@ -189,6 +227,8 @@ $defaultTargetDate = date('Y-m-d', strtotime('+10 months'));
 <script>
 const cards = document.querySelectorAll('.target-card');
 const radios = document.querySelectorAll('input[name="livestock_id"]');
+const programCards = document.querySelectorAll('.program-card');
+const programRadios = document.querySelectorAll('input[name="program_type"]');
 const targetNameInput = document.getElementById('livestock_target');
 const targetAmountInput = document.getElementById('target_amount');
 const durationInput = document.getElementById('duration_month');
@@ -216,12 +256,13 @@ function monthDiffFromToday(dateValue) {
 }
 
 function activeRadio() {
-    return document.querySelector('input[name="livestock_id"]:checked') || radios[0];
+    return document.querySelector('input[name="livestock_id"]:checked') || document.querySelector('input[name="livestock_id"]');
 }
 
 function refreshCardState() {
     cards.forEach(card => {
-        const checked = card.querySelector('input[type="radio"]').checked;
+        const input = card.querySelector('input[type="radio"]');
+        const checked = input.checked;
         card.classList.toggle('border-brand-primary', checked);
         card.classList.toggle('ring-4', checked);
         card.classList.toggle('ring-brand-primary/10', checked);
@@ -238,17 +279,20 @@ function calculatePlan() {
     const selected = activeRadio();
     if (!selected) return;
 
-    const price = parseFloat(selected.dataset.price || 0);
+    const selectedProgram = document.querySelector('input[name="program_type"]:checked').value;
+    const fullPrice = parseFloat(selected.dataset.price || 0);
+    const price = selectedProgram === 'sapi_patungan' ? (fullPrice / 7) : fullPrice;
+
     const initialDeposit = Math.max(0, parseFloat(initialDepositInput.value || 0));
     const months = monthDiffFromToday(targetDateInput.value);
     const remaining = Math.max(0, price - initialDeposit);
     const monthly = remaining / months;
 
-    targetNameInput.value = selected.dataset.name || 'Hewan Qurban';
+    targetNameInput.value = selected.dataset.name + (selectedProgram === 'sapi_patungan' ? ' (1/7 Sapi)' : '');
     targetAmountInput.value = price;
     durationInput.value = months;
 
-    summaryName.textContent = selected.dataset.name || '-';
+    summaryName.textContent = selected.dataset.name + (selectedProgram === 'sapi_patungan' ? ' (1/7 Sapi)' : '');
     summaryCode.textContent = selected.dataset.code || '-';
     summaryPrice.textContent = formatRupiah(price);
     summaryDuration.textContent = months + ' bulan';
@@ -258,10 +302,54 @@ function calculatePlan() {
     refreshCardState();
 }
 
+function updateProgramSelection() {
+    const selectedProgram = document.querySelector('input[name="program_type"]:checked').value;
+    
+    // Highlight program cards
+    programCards.forEach(card => {
+        const checked = card.querySelector('input[type="radio"]').checked;
+        card.classList.toggle('border-brand-primary', checked);
+        card.classList.toggle('ring-4', checked);
+        card.classList.toggle('ring-brand-primary/10', checked);
+        card.classList.toggle('border-gray-100', !checked);
+    });
+
+    let firstVisibleSelected = false;
+
+    // Filter livestock cards based on selected program type
+    cards.forEach(card => {
+        const input = card.querySelector('input[type="radio"]');
+        const name = input.dataset.name.toLowerCase();
+        let matches = false;
+        
+        if (selectedProgram === 'kambing') {
+            matches = name.includes('kambing') || name.includes('domba');
+        } else if (selectedProgram === 'sapi_patungan') {
+            matches = name.includes('sapi');
+        }
+
+        if (matches) {
+            card.style.display = 'block';
+            if (!firstVisibleSelected) {
+                input.checked = true;
+                firstVisibleSelected = true;
+            }
+        } else {
+            card.style.display = 'none';
+            input.checked = false;
+        }
+    });
+
+    calculatePlan();
+}
+
 radios.forEach(radio => radio.addEventListener('change', calculatePlan));
+programRadios.forEach(radio => radio.addEventListener('change', updateProgramSelection));
 initialDepositInput.addEventListener('input', calculatePlan);
 targetDateInput.addEventListener('change', calculatePlan);
-calculatePlan();
+
+// Initialize program selection filtering on load
+updateProgramSelection();
 
 fetch('/lautan-ternak-pantura/api/savings/livestock')
     .then(response => response.ok ? response.json() : null)

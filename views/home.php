@@ -325,40 +325,81 @@
 </div>
 
 <!-- CTA Section -->
-<div class="py-20 bg-white relative overflow-hidden">
-    <!-- Subtle pattern or decoration -->
-    <div
-        class="absolute top-0 left-1/2 w-[800px] h-[800px] bg-brand-light/20 rounded-full blur-3xl -translate-x-1/2 -translate-y-1/2 -z-0">
-    </div>
+<div class="py-24 bg-white relative overflow-hidden">
+    <!-- Ambient light glow effects -->
+    <div class="absolute top-1/2 left-1/4 w-[500px] h-[500px] bg-brand-light/30 rounded-full blur-[120px] -translate-y-1/2 -z-0 pointer-events-none"></div>
+    <div class="absolute bottom-0 right-1/4 w-[600px] h-[600px] bg-emerald-50 rounded-full blur-[140px] -z-0 pointer-events-none"></div>
 
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-        <div
-            class="bg-gradient-to-br from-brand-primary to-brand-dark rounded-3xl shadow-2xl shadow-brand-primary/20 overflow-hidden">
-            <div class="grid lg:grid-cols-2 items-center">
-                <div class="p-12 lg:p-20">
-                    <h2 class="text-4xl md:text-5xl font-black text-white leading-tight mb-8">
-                        Siap Mewujudkan <br><span class="text-brand-secondary">Ibadah Qurban Anda?</span>
+        <div class="relative bg-gradient-to-br from-[#0a356c] via-[#0d5bb5] to-[#082f61] rounded-3xl shadow-2xl shadow-brand-primary/30 overflow-hidden border border-white/10">
+            <!-- Decorative abstract patterns inside card -->
+            <div class="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,rgba(255,255,255,0.05),transparent_40%)] pointer-events-none"></div>
+            
+            <div class="grid lg:grid-cols-12 items-center">
+                <!-- Left Content Column -->
+                <div class="lg:col-span-7 p-8 sm:p-12 lg:p-20 relative z-10">
+                    <!-- Premium Badge -->
+                    <div class="inline-flex items-center gap-2.5 px-4 py-1.5 rounded-full bg-white/10 border border-white/15 text-white text-xs font-semibold uppercase tracking-wider mb-8 backdrop-blur-md">
+                        <span class="flex h-2.5 w-2.5 relative">
+                            <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+                            <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-amber-500"></span>
+                        </span>
+                        <span>Program Tabungan Qurban & Aqiqah</span>
+                    </div>
+
+                    <!-- Main Heading -->
+                    <h2 class="text-3xl sm:text-4xl md:text-5xl font-black text-white leading-tight mb-6 tracking-tight">
+                        Siap Mewujudkan <br>
+                        <span class="bg-gradient-to-r from-amber-300 via-amber-400 to-orange-400 bg-clip-text text-transparent">
+                            Ibadah Qurban Anda?
+                        </span>
                     </h2>
-                    <p class="text-blue-100 text-lg leading-relaxed mb-10 max-w-md">
-                        Gabung bersama ratusan sohibul qurban lainnya. Rencanakan sekarang, cicil perlahan, dan nikmati
-                        kemudahan ibadah yang berkah bersama LTP.
+
+                    <!-- Subtitle / Supporting text -->
+                    <p class="text-blue-100/90 text-base sm:text-lg leading-relaxed mb-10 max-w-xl">
+                        Gabung bersama ratusan sohibul qurban lainnya. Rencanakan sekarang, cicil perlahan, dan nikmati kemudahan ibadah yang penuh berkah bersama Lautan Ternak Pantura.
                     </p>
+
+                    <!-- Buttons Group -->
                     <div class="flex flex-col sm:flex-row gap-4">
                         <a href="/lautan-ternak-pantura/auth/register"
-                            class="px-8 py-4 bg-white text-brand-primary rounded-2xl font-bold text-lg hover:bg-gray-50 hover:-translate-y-1 transition-all shadow-lg text-center">
-                            Daftar Sekarang
+                           class="group inline-flex items-center justify-center gap-2.5 px-8 py-4 bg-white text-brand-primary hover:text-brand-dark rounded-2xl font-bold text-lg hover:-translate-y-0.5 hover:shadow-xl hover:shadow-white/10 transition-all duration-300">
+                            <span>Daftar Sekarang</span>
+                            <i class="fas fa-arrow-right text-sm transition-transform duration-300 group-hover:translate-x-1"></i>
                         </a>
                         <a href="/lautan-ternak-pantura/marketplace"
-                            class="px-8 py-4 bg-transparent border-2 border-white/30 text-white rounded-2xl font-bold text-lg hover:bg-white/10 transition-all text-center">
-                            Lihat Katalog
+                           class="group inline-flex items-center justify-center gap-2 px-8 py-4 bg-white/10 hover:bg-white/15 border border-white/20 hover:border-white/40 text-white rounded-2xl font-bold text-lg hover:-translate-y-0.5 transition-all duration-300 backdrop-blur-md">
+                            <i class="fas fa-paw text-base opacity-80 mr-1.5 transition-transform group-hover:scale-110"></i>
+                            <span>Lihat Katalog</span>
                         </a>
                     </div>
-                </div>
-                <div class="hidden lg:block relative h-full min-h-[500px]">
-                    <img src="https://images.unsplash.com/photo-1545468202-0e2f5b610332?auto=format&fit=crop&q=80&w=1200"
-                        alt="Qurban Berkah" class="absolute inset-0 w-full h-full object-cover">
-                    <div class="absolute inset-0 bg-gradient-to-r from-brand-primary via-transparent to-transparent">
+
+                    <!-- Social Proof / Trust Indicators -->
+                    <div class="mt-12 pt-8 border-t border-white/10 grid grid-cols-3 gap-6 text-white">
+                        <div>
+                            <p class="text-2xl sm:text-3xl font-black text-amber-400">1.200+</p>
+                            <p class="text-[11px] sm:text-xs text-blue-200 uppercase tracking-wider font-semibold mt-1">Sohibul Qurban</p>
+                        </div>
+                        <div>
+                            <p class="text-2xl sm:text-3xl font-black text-amber-400">100%</p>
+                            <p class="text-[11px] sm:text-xs text-blue-200 uppercase tracking-wider font-semibold mt-1">Amanah & Syariah</p>
+                        </div>
+                        <div>
+                            <p class="text-2xl sm:text-3xl font-black text-amber-400">Premium</p>
+                            <p class="text-[11px] sm:text-xs text-blue-200 uppercase tracking-wider font-semibold mt-1">Hewan Pilihan</p>
+                        </div>
                     </div>
+                </div>
+
+                <!-- Right Visual Column (Visible only on lg) -->
+                <div class="hidden lg:block lg:col-span-5 relative h-full min-h-[550px] overflow-hidden">
+                    <img src="/lautan-ternak-pantura/assets/images/cta_livestock.png"
+                         alt="Hewan Qurban Premium LTP" 
+                         class="absolute inset-0 w-full h-full object-cover object-center transform hover:scale-105 transition-transform duration-700">
+                    <!-- Smooth fading gradient from content side to image -->
+                    <div class="absolute inset-0 bg-gradient-to-r from-[#0d5bb5] via-[#0d5bb5]/20 to-transparent"></div>
+                    <!-- Extra bottom subtle fade to prevent sharp edge -->
+                    <div class="absolute inset-0 bg-gradient-to-t from-[#082f61]/40 via-transparent to-transparent"></div>
                 </div>
             </div>
         </div>

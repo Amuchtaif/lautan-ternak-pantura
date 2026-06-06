@@ -75,10 +75,20 @@ try {
         throw new RuntimeException('Hewan target tidak tersedia.');
     }
 
+    $programType = trim($_POST['program_type'] ?? 'kambing');
+    if (!in_array($programType, ['kambing', 'sapi_patungan'], true)) {
+        $programType = 'kambing';
+    }
+
     $livestockTarget = $livestock['name'] ?? $livestock['breed'] ?? 'Hewan Qurban';
-    $targetAmount = (float)$livestock['price'];
-    if ($targetAmount < 100000) {
-        throw new RuntimeException('Harga hewan target tidak valid.');
+    if ($programType === 'sapi_patungan') {
+        $livestockTarget .= ' (1/7 Sapi)';
+    }
+    $fullPrice = (float)$livestock['price'];
+    $targetAmount = $programType === 'sapi_patungan' ? round($fullPrice / 7, 2) : $fullPrice;
+
+    if ($targetAmount < 10000) {
+        throw new RuntimeException('Harga target tidak valid.');
     }
     if ($initialDeposit > $targetAmount) {
         throw new RuntimeException('Tabungan awal tidak boleh melebihi target nominal.');
@@ -93,7 +103,8 @@ try {
         'monthly_target' => round(($targetAmount - $initialDeposit) / $durationMonth, 2),
         'duration_month' => $durationMonth,
         'target_date' => $targetDate->format('Y-m-d'),
-        'notes' => $notes ?: $participantAddress
+        'notes' => $notes ?: $participantAddress,
+        'program_type' => $programType
     ]);
 
     $stmtUser = $conn->prepare("UPDATE users SET phone = ?, address = ? WHERE id = ?");

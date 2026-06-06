@@ -13,6 +13,23 @@
     $verifiedCount = count(array_filter($transactions, fn($t) => $t['transaction_status'] === 'verified'));
     $pendingCount  = count(array_filter($transactions, fn($t) => $t['transaction_status'] === 'pending'));
 ?>
+<style>
+@keyframes shimmer {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(100%); }
+}
+.shimmer-bar {
+    position: relative;
+    overflow: hidden;
+}
+.shimmer-bar::after {
+    content: '';
+    position: absolute;
+    top: 0; right: 0; bottom: 0; left: 0;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.35), transparent);
+    animation: shimmer 2.5s infinite linear;
+}
+</style>
 <div class="flex-grow flex flex-col min-h-screen max-w-full overflow-x-hidden bg-gray-50/60">
     <?php include 'views/admin/includes/topbar.php'; ?>
     <main class="p-6 lg:p-8 space-y-6 flex-grow">
@@ -91,21 +108,134 @@
                 <div>
                     <div class="flex items-center justify-between mb-3">
                         <span class="text-xs font-black text-gray-500 uppercase tracking-widest">Progres Tabungan</span>
-                        <span class="text-sm font-black text-brand-primary"><?php echo $progress; ?>%</span>
-                    </div>
-                    <div class="h-3 bg-gray-100 rounded-full overflow-hidden">
-                        <div class="h-full rounded-full transition-all duration-1000 relative overflow-hidden"
-                            style="width:<?php echo $progressClamped; ?>%; background: linear-gradient(90deg, #0d5bb5 0%, #00a3e0 100%);">
-                            <div class="absolute inset-0 bg-white/20" style="background: repeating-linear-gradient(90deg,transparent,transparent 8px,rgba(255,255,255,0.15) 8px,rgba(255,255,255,0.15) 10px)"></div>
+                        <div class="flex items-center gap-2">
+                            <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-black bg-brand-primary/10 text-brand-primary shadow-sm shadow-brand-primary/5">
+                                <?php echo $progress; ?>%
+                            </span>
                         </div>
                     </div>
-                    <div class="flex justify-between mt-1.5">
+                    <div class="h-5 w-full bg-gray-100/70 border border-gray-200/50 rounded-full p-[3px] shadow-inner relative flex items-center">
+                        <div class="h-full rounded-full transition-all duration-1000 relative shadow-md shadow-brand-primary/20 flex items-center justify-end shimmer-bar"
+                            style="width:<?php echo $progressClamped; ?>%; background: linear-gradient(90deg, #0d5bb5 0%, #00a3e0 100%);">
+                            
+                            <!-- Glowing stripe pattern -->
+                            <div class="absolute inset-0 opacity-20" style="background: repeating-linear-gradient(45deg,transparent,transparent 8px,rgba(255,255,255,0.4) 8px,rgba(255,255,255,0.4) 16px)"></div>
+                            
+                            <!-- Leading glow indicator dot -->
+                            <?php if ($progressClamped > 0): ?>
+                                <span class="absolute right-[1px] h-3.5 w-3.5 rounded-full bg-white shadow-md shadow-brand-primary/50 flex items-center justify-center border border-brand-primary/20">
+                                    <span class="h-1.5 w-1.5 rounded-full bg-brand-primary animate-ping"></span>
+                                </span>
+                            <?php endif; ?>
+                        </div>
+                    </div>
+                    <div class="flex justify-between mt-2 px-1">
                         <span class="text-[10px] font-bold text-gray-400">Rp 0</span>
-                        <span class="text-[10px] font-bold text-gray-400">Rp <?php echo number_format($plan['target_amount'], 0, ',', '.'); ?></span>
+                        <span class="text-[10px] font-bold text-gray-400">Target Pelunasan: Rp <?php echo number_format($plan['target_amount'], 0, ',', '.'); ?></span>
                     </div>
                 </div>
             </div>
         </div>
+
+        <?php
+        // Fetch associated qurban registration details if they exist
+        $registration = null;
+        if (!empty($plan['plan_code'])) {
+            $stmtReg = $db->prepare("SELECT * FROM qurban_registrations WHERE nomor_registrasi = ?");
+            $stmtReg->execute([$plan['plan_code']]);
+            $registration = $stmtReg->fetch(PDO::FETCH_ASSOC);
+        }
+        ?>
+        <?php if ($registration): ?>
+            <!-- ── Detail Registrasi Qurban Section ──────────────── -->
+            <div class="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden">
+                <div class="px-8 py-6 border-b border-gray-50 flex items-center gap-3 bg-gray-50/50">
+                    <span class="flex h-8 w-8 items-center justify-center rounded-xl bg-brand-primary/10 text-brand-primary">
+                        <i class="fas fa-file-contract text-sm"></i>
+                    </span>
+                    <div>
+                        <h2 class="text-lg font-black text-gray-900 leading-tight">Detail Registrasi & Penyaluran</h2>
+                        <p class="text-xs font-bold text-gray-400 mt-0.5">Informasi lengkap peserta qurban berdasarkan formulir pendaftaran.</p>
+                    </div>
+                </div>
+                <div class="p-8 grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <!-- Column 1: Pequrban info -->
+                    <div class="space-y-4">
+                        <div>
+                            <p class="text-[10px] font-black text-gray-400 uppercase tracking-widest leading-none mb-1.5">Nama Lengkap & Bin/Binti</p>
+                            <p class="text-sm font-black text-gray-900"><?php echo htmlspecialchars($registration['nama_pequrban']); ?></p>
+                            <p class="text-xs text-gray-500 font-bold mt-1"><?php echo htmlspecialchars($registration['bin_binti']); ?></p>
+                        </div>
+                        <div>
+                            <p class="text-[10px] font-black text-gray-400 uppercase tracking-widest leading-none mb-1.5">Nomor WhatsApp</p>
+                            <a href="https://wa.me/<?php echo preg_replace('/\D/', '', $registration['no_wa']); ?>" target="_blank" class="inline-flex items-center gap-1.5 text-sm font-black text-emerald-600 hover:text-emerald-700 transition">
+                                <i class="fab fa-whatsapp"></i> <?php echo htmlspecialchars($registration['no_wa']); ?>
+                            </a>
+                        </div>
+                        <div>
+                            <p class="text-[10px] font-black text-gray-400 uppercase tracking-widest leading-none mb-1.5">Alamat Lengkap</p>
+                            <p class="text-xs font-bold text-gray-600 leading-relaxed whitespace-pre-line"><?php echo htmlspecialchars($registration['alamat']); ?></p>
+                        </div>
+                    </div>
+
+                    <!-- Column 2: Distribution option -->
+                    <div class="space-y-4">
+                        <div>
+                            <p class="text-[10px] font-black text-gray-400 uppercase tracking-widest leading-none mb-1.5">Opsi Penyaluran Qurban</p>
+                            <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-black bg-blue-50 text-blue-600 border border-blue-100">
+                                <i class="fas fa-truck text-[10px]"></i> <?php echo htmlspecialchars($registration['opsi_penyaluran']); ?>
+                            </span>
+                        </div>
+                        <?php if ($registration['opsi_penyaluran'] === 'Hewan hidup dikirim ke alamat pequrban'): ?>
+                            <div>
+                                <p class="text-[10px] font-black text-gray-400 uppercase tracking-widest leading-none mb-1.5">Alamat Pengiriman Hewan</p>
+                                <p class="text-xs font-bold text-gray-600 leading-relaxed"><?php echo htmlspecialchars($registration['alamat_pengiriman']); ?></p>
+                            </div>
+                        <?php endif; ?>
+                        <div>
+                            <p class="text-[10px] font-black text-gray-400 uppercase tracking-widest leading-none mb-1.5">Kehadiran Penyembelihan</p>
+                            <?php if ($registration['hadir_penyembelihan']): ?>
+                                <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[10px] font-black uppercase bg-emerald-50 text-emerald-600 border border-emerald-100">
+                                    <i class="fas fa-eye text-[8px]"></i> Ingin Hadir Langsung
+                                </span>
+                            <?php else: ?>
+                                <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[10px] font-black uppercase bg-gray-50 text-gray-500 border border-gray-100">
+                                    <i class="fas fa-eye-slash text-[8px]"></i> Tidak Hadir
+                                </span>
+                            <?php endif; ?>
+                        </div>
+                    </div>
+
+                    <!-- Column 3: Cert + Agreement -->
+                    <div class="space-y-4">
+                        <div>
+                            <p class="text-[10px] font-black text-gray-400 uppercase tracking-widest leading-none mb-1.5">Nama Pada Sertifikat</p>
+                            <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-black bg-purple-50 text-purple-600 border border-purple-100">
+                                <i class="fas fa-award text-[10px]"></i> <?php echo htmlspecialchars($registration['nama_sertifikat']); ?>
+                            </span>
+                        </div>
+                        <?php if (!empty($registration['catatan'])): ?>
+                            <div>
+                                <p class="text-[10px] font-black text-gray-400 uppercase tracking-widest leading-none mb-1.5">Catatan Khusus</p>
+                                <p class="text-xs font-bold text-gray-600 bg-gray-50 border border-gray-100 p-3 rounded-2xl leading-relaxed italic"><?php echo htmlspecialchars($registration['catatan']); ?></p>
+                            </div>
+                        <?php endif; ?>
+                        <div>
+                            <p class="text-[10px] font-black text-gray-400 uppercase tracking-widest leading-none mb-1.5">Persetujuan Double Account</p>
+                            <?php if ($registration['persetujuan']): ?>
+                                <span class="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[10px] font-black uppercase bg-emerald-50 text-emerald-600 border border-emerald-100">
+                                    <i class="fas fa-check-double text-[8px]"></i> Telah Disetujui
+                                </span>
+                            <?php else: ?>
+                                <span class="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[10px] font-black uppercase bg-red-50 text-red-500 border border-red-100">
+                                    <i class="fas fa-exclamation-triangle text-[8px]"></i> Belum Disetujui
+                                </span>
+                            <?php endif; ?>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        <?php endif; ?>
 
         <!-- ── Transaction Table ──────────────────────────── -->
         <div class="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden">
@@ -138,8 +268,10 @@
                                 $isVerified = $trx['transaction_status'] === 'verified';
                                 $isRejected = $trx['transaction_status'] === 'rejected';
                                 // Parse deposit date from notes
-                                $notesLines  = explode("\n", $trx['notes'] ?? '');
-                                $depositDateDisplay = trim($notesLines[0] ?? '');
+                                $depositDateDisplay = '';
+                                if (preg_match('/Tanggal setor:\s*([0-9]{4}-[0-9]{2}-[0-9]{2})/i', $trx['notes'] ?? '', $matches)) {
+                                    $depositDateDisplay = $matches[1];
+                                }
                             ?>
                             <tr class="group hover:bg-brand-primary/[0.02] transition-colors">
                                 <!-- Date -->
@@ -502,7 +634,7 @@ function openApprovalModal(txId, txData) {
         // Populate modal with transaction details
         document.getElementById('modal-amount').textContent = 'Rp ' + new Intl.NumberFormat('id-ID').format(trx.amount);
         document.getElementById('modal-method').textContent = trx.payment_method.replace('_', ' ');
-        document.getElementById('modal-date').textContent = new Date(trx.created_at).toLocaleDateString('id-ID', { 
+        document.getElementById('modal-date').textContent = new Date((trx.created_at || '').replace(' ', 'T')).toLocaleDateString('id-ID', { 
             year: 'numeric', 
             month: 'long', 
             day: 'numeric',

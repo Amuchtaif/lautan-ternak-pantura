@@ -22,15 +22,24 @@
         }
     </script>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
         body {
             font-family: 'Plus Jakarta Sans', sans-serif;
             background-color: #f1f5f9;
         }
         @media print {
+            @page {
+                size: A4 portrait;
+                margin: 15mm;
+            }
             body {
                 background-color: #ffffff !important;
                 padding: 0 !important;
+                margin: 0 !important;
+                display: block !important;
+                height: auto !important;
+                min-height: 0 !important;
             }
             .no-print {
                 display: none !important;
@@ -39,8 +48,11 @@
                 border: none !important;
                 box-shadow: none !important;
                 padding: 0 !important;
-                margin: 0 !important;
+                margin: 0 auto !important;
                 max-width: 100% !important;
+                width: 100% !important;
+                page-break-inside: avoid;
+                break-inside: avoid;
             }
         }
     </style>
@@ -50,18 +62,18 @@
     <div class="w-full max-w-2xl bg-white rounded-3xl shadow-xl border border-gray-100 p-8 sm:p-12 print-card relative overflow-hidden">
         
         <!-- Watermark / Decorative element -->
-        <div class="absolute -top-24 -right-24 w-96 h-96 bg-brand-primary/5 rounded-full blur-3xl pointer-events-none"></div>
-        <div class="absolute -bottom-24 -left-24 w-96 h-96 bg-brand-secondary/5 rounded-full blur-3xl pointer-events-none"></div>
+        <div class="absolute -top-24 -right-24 w-96 h-96 bg-brand-primary/5 rounded-full blur-3xl pointer-events-none no-print"></div>
+        <div class="absolute -bottom-24 -left-24 w-96 h-96 bg-brand-secondary/5 rounded-full blur-3xl pointer-events-none no-print"></div>
 
         <!-- Print Action Header -->
         <div class="no-print mb-8 flex justify-between items-center gap-4 bg-slate-50 border border-slate-100 p-4 rounded-2xl">
             <span class="text-xs font-bold text-gray-500"><i class="fas fa-info-circle mr-1"></i>Halaman ini dioptimalkan untuk dicetak.</span>
             <div class="flex gap-3">
-                <button onclick="window.history.back()" class="bg-white text-gray-700 px-4 py-2 border border-gray-200 rounded-xl text-sm font-bold hover:bg-gray-50 transition">
-                    Kembali
+                <button onclick="window.close()" class="bg-white text-gray-700 px-4 py-2 border border-gray-200 rounded-xl text-sm font-bold hover:bg-gray-50 transition flex items-center gap-1.5">
+                    <i class="fas fa-arrow-left"></i> Kembali
                 </button>
-                <button onclick="window.print()" class="bg-brand-primary text-white px-5 py-2 rounded-xl text-sm font-black shadow-lg shadow-brand-primary/20 hover:bg-brand-dark transition">
-                    Cetak Kuitansi
+                <button onclick="window.print()" class="bg-brand-primary text-white px-5 py-2 rounded-xl text-sm font-black shadow-lg shadow-brand-primary/20 hover:bg-brand-dark transition flex items-center gap-1.5">
+                    <i class="fas fa-print"></i> Cetak Kuitansi
                 </button>
             </div>
         </div>
@@ -131,17 +143,22 @@
 
             <!-- Notes Section -->
             <?php
-                // Extract deposit date from notes (first line) and remaining notes
+                // Extract deposit date and remaining notes
                 $notes = $trx['notes'] ?? '';
-                $lines = explode("\n", $notes);
-                $depositDate = trim($lines[0] ?? '');
-                $additionalNotes = count($lines) > 1 ? implode("\n", array_slice($lines, 1)) : '';
+                $depositDateVal = '';
+                if (preg_match('/Tanggal setor:\s*([0-9]{4}-[0-9]{2}-[0-9]{2})/i', $notes, $matches)) {
+                    $depositDateVal = date('d M Y', strtotime($matches[1]));
+                }
+                
+                // Clean notes to get additional notes
+                $cleanNotes = preg_replace('/(Setoran manual admin\.\s*)?Tanggal setor:\s*[0-9]{4}-[0-9]{2}-[0-9]{2}/i', '', $notes);
+                $additionalNotes = trim($cleanNotes);
             ?>
-            <?php if (!empty($depositDate) || !empty($additionalNotes)): ?>
+            <?php if (!empty($depositDateVal) || !empty($additionalNotes)): ?>
                 <div class="bg-blue-50/30 border border-blue-100/50 rounded-2xl p-5">
-                    <?php if (!empty($depositDate)): ?>
+                    <?php if (!empty($depositDateVal)): ?>
                         <p class="text-[9px] font-bold text-blue-500 uppercase tracking-wider mb-1">Tanggal Setor</p>
-                        <p class="text-xs font-medium text-slate-700 leading-relaxed whitespace-pre-line"><?php echo htmlspecialchars($depositDate); ?></p>
+                        <p class="text-xs font-medium text-slate-700 leading-relaxed whitespace-pre-line"><?php echo htmlspecialchars($depositDateVal); ?></p>
                     <?php endif; ?>
                     <?php if (!empty($additionalNotes)): ?>
                         <p class="text-[9px] font-bold text-blue-500 uppercase tracking-wider mb-1 mt-2">Catatan Setoran</p>

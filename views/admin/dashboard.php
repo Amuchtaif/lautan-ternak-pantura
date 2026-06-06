@@ -413,8 +413,20 @@ try {
                                                 <?php echo number_format($trx['amount']); ?></p>
                                         </td>
                                         <td class="px-8 py-6">
-                                            <p class="text-xs font-bold text-gray-400">
-                                                <?php echo date('d M Y', strtotime($trx['created_at'])); ?></p>
+                                            <?php
+                                                $depositDateDisplay = '';
+                                                if (preg_match('/Tanggal setor:\s*([0-9]{4}-[0-9]{2}-[0-9]{2})/i', $trx['notes'] ?? '', $matches)) {
+                                                    $depositDateDisplay = $matches[1];
+                                                }
+                                            ?>
+                                            <p class="text-xs font-bold text-gray-600">
+                                                <?php echo date('d M Y', strtotime($trx['created_at'])); ?>
+                                            </p>
+                                            <?php if ($depositDateDisplay && $depositDateDisplay !== date('Y-m-d', strtotime($trx['created_at']))): ?>
+                                                <p class="text-[9px] font-bold text-blue-500 mt-0.5">
+                                                    Setor: <?php echo date('d M Y', strtotime($depositDateDisplay)); ?>
+                                                </p>
+                                            <?php endif; ?>
                                         </td>
                                         <td class="px-8 py-6 text-right">
                                             <div class="flex justify-end gap-2">
@@ -574,7 +586,7 @@ try {
                 // Populate modal with transaction details
                 document.getElementById('modal-customer').textContent = trx.user_name;
                 document.getElementById('modal-amount').textContent = 'Rp ' + new Intl.NumberFormat('id-ID').format(trx.amount);
-                document.getElementById('modal-date').textContent = new Date(trx.created_at).toLocaleDateString('id-ID', { 
+                document.getElementById('modal-date').textContent = new Date((trx.created_at || '').replace(' ', 'T')).toLocaleDateString('id-ID', { 
                     year: 'numeric', 
                     month: 'long', 
                     day: 'numeric',

@@ -73,7 +73,7 @@ $currentUri = $_SERVER['REQUEST_URI'];
 
         <a href="/lautan-ternak-pantura/views/admin/users"
             class="sidebar-link flex items-center gap-4 px-4 py-3.5 rounded-r-lg font-bold text-sm transition-all group <?php echo $currentPage == 'users' || strpos($currentUri, '/views/admin/users') !== false ? 'active text-brand-primary' : 'text-gray-500'; ?>">
-            <i class="fa-solid fa-users text-lg"></i>
+            <i class="fa-solid fa-user text-lg"></i>
             <span>Kelola Pengguna</span>
         </a>
 
@@ -81,6 +81,12 @@ $currentUri = $_SERVER['REQUEST_URI'];
             class="sidebar-link flex items-center gap-4 px-4 py-3.5 rounded-r-lg font-bold text-sm transition-all group <?php echo strpos($currentUri, '/savings/management') !== false || strpos($currentUri, '/savings/adminDetail') !== false || $currentPage == 'transfers' ? 'active text-brand-primary' : 'text-gray-500'; ?>">
             <i class="fa-solid fa-receipt text-lg"></i>
             <span>Tabungan Qurban</span>
+        </a>
+
+        <a href="/lautan-ternak-pantura/savings/groups"
+            class="sidebar-link flex items-center gap-4 px-4 py-3.5 rounded-r-lg font-bold text-sm transition-all group <?php echo strpos($currentUri, '/savings/groups') !== false ? 'active text-brand-primary' : 'text-gray-500'; ?>">
+            <i class="fa-solid fa-users text-lg"></i>
+            <span>Kelompok Qurban Sapi</span>
         </a>
 
         <a href="/lautan-ternak-pantura/livestock/index"

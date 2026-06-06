@@ -44,6 +44,7 @@ it("dapat mencatat transaksi pembelian stok hewan baru dan menginkremen stok inv
         'purchase_price' => 15000000,
         'notes' => 'Test notes',
         'created_by' => $adminId,
+        'cash_account_id' => 1,
         'purchased_at' => date('Y-m-d H:i:s')
     ];
     $purchaseModel->create($purchaseData);
@@ -173,6 +174,7 @@ it("tidak akan melakukan dobel penamaan (breed duplication) jika livestock_name 
         'purchase_price' => 2000000,
         'notes' => 'Test double naming',
         'created_by' => 1,
+        'cash_account_id' => 1,
         'purchased_at' => date('Y-m-d H:i:s')
     ];
     $purchaseModel->create($purchaseData);

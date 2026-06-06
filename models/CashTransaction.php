@@ -16,8 +16,12 @@ class CashTransaction {
         $cashIn = floatval($cashIn);
         $cashOut = floatval($cashOut);
         
-        // 1. Lock cash account row for update
-        $stmt = $this->conn->prepare("SELECT current_balance FROM cash_accounts WHERE id = ? FOR UPDATE");
+        // 1. Lock cash account row for update (skip FOR UPDATE in SQLite test isolation)
+        $query = "SELECT current_balance FROM cash_accounts WHERE id = ?";
+        if ($this->conn->getAttribute(PDO::ATTR_DRIVER_NAME) !== 'sqlite') {
+            $query .= " FOR UPDATE";
+        }
+        $stmt = $this->conn->prepare($query);
         $stmt->execute([$accountId]);
         $currentBalance = $stmt->fetchColumn();
         

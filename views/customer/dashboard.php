@@ -43,10 +43,13 @@ if (isset($conn)) {
         // 1. Fetch Active Savings Plan
         $stmt = $conn->prepare("
             SELECT sp.*, {$livestockTargetExpr} as animal_type, {$currentAmountExpr} AS normalized_current_amount,
-                sp.{$monthlyColumn} AS normalized_monthly_target, l.image as animal_image, sp.target_amount as animal_price
+                sp.{$monthlyColumn} AS normalized_monthly_target, l.image as animal_image, sp.target_amount as animal_price,
+                g.group_code, g.status AS group_status,
+                (SELECT COUNT(*) FROM savings_plans WHERE group_id = g.id) AS group_members
             FROM savings_plans sp
             LEFT JOIN livestock l ON sp.livestock_id = l.id
-            WHERE sp.customer_id = ? AND sp.status = 'active'
+            LEFT JOIN savings_groups g ON sp.group_id = g.id
+            WHERE sp.customer_id = ? AND sp.status IN ('active', 'completed', 'Aktif', 'Target Tercapai', 'Masuk Kelompok', 'Selesai')
             ORDER BY sp.created_at DESC LIMIT 1
         ");
         $stmt->execute([$customerId]);
@@ -125,13 +128,45 @@ unset($_SESSION['success']);
                 <a href="/lautan-ternak-pantura/marketplace" class="bg-white text-brand-primary border border-brand-primary/20 px-6 py-3 rounded-2xl shadow-sm hover:bg-brand-light/20 transition-all text-sm font-black flex items-center justify-center gap-2 w-full sm:w-auto">
                     <i class="fas fa-search"></i> Cari Hewan
                 </a>
-                <?php if ($activePlan): ?>
+                <?php if ($activePlan && in_array($activePlan['status'], ['Aktif', 'active', 'overdue'], true)): ?>
                     <button onclick="openPaymentModal(<?php echo $activePlan['id']; ?>, <?php echo (int)$activePlan['monthly_target']; ?>)" class="bg-brand-primary text-white px-6 py-3 rounded-2xl shadow-xl shadow-brand-primary/20 hover:bg-brand-dark transition-all text-sm font-black flex items-center justify-center gap-2 w-full sm:w-auto">
                         <i class="fas fa-paper-plane"></i> Setor Tabungan
                     </button>
                 <?php endif; ?>
             </div>
         </div>
+
+        <!-- Notifications List -->
+        <?php
+        $stmtNotif = $conn->prepare("SELECT * FROM notifications WHERE user_id = ? ORDER BY created_at DESC LIMIT 5");
+        $stmtNotif->execute([$customerId]);
+        $notifications = $stmtNotif->fetchAll(PDO::FETCH_ASSOC);
+        if (!empty($notifications)):
+            // Mark as read after fetching so they are marked read for subsequent loads
+            $conn->prepare("UPDATE notifications SET is_read = 1 WHERE user_id = ? AND is_read = 0")->execute([$customerId]);
+        ?>
+            <div class="mb-6 bg-white border border-gray-100 rounded-3xl p-6 shadow-sm">
+                <div class="flex items-center justify-between mb-4 border-b border-gray-50 pb-3">
+                    <div class="flex items-center gap-2">
+                        <span class="flex h-7 w-7 items-center justify-center rounded-lg bg-amber-50 text-amber-500"><i class="fas fa-bell text-xs"></i></span>
+                        <span class="text-xs font-black text-gray-700 uppercase tracking-widest">Notifikasi Terbaru</span>
+                    </div>
+                </div>
+                <div class="space-y-3">
+                    <?php foreach ($notifications as $notif): ?>
+                        <div class="flex items-start justify-between gap-3 text-sm p-3 rounded-2xl bg-gray-50/50 hover:bg-gray-50 transition border border-transparent hover:border-gray-100">
+                            <div class="flex gap-3">
+                                <span class="h-2 w-2 rounded-full mt-1.5 shrink-0 <?php echo $notif['is_read'] ? 'bg-gray-300' : 'bg-brand-primary animate-pulse'; ?>"></span>
+                                <div>
+                                    <p class="font-bold text-gray-800"><?php echo htmlspecialchars($notif['message']); ?></p>
+                                    <p class="text-[10px] text-gray-400 font-bold mt-0.5"><?php echo date('d M Y, H:i', strtotime($notif['created_at'])); ?></p>
+                                </div>
+                            </div>
+                        </div>
+                    <?php endforeach; ?>
+                </div>
+            </div>
+        <?php endif; ?>
 
 
 
@@ -172,7 +207,17 @@ unset($_SESSION['success']);
                 <div class="px-10 py-8 border-b border-gray-50 flex justify-between items-center bg-gray-50/50">
                     <h3 class="text-xl font-black text-gray-900 tracking-tight">Rencana Tabungan</h3>
                     <?php if ($activePlan): ?>
-                        <span class="bg-emerald-50 text-emerald-600 text-[10px] font-black px-3 py-1.5 rounded-full uppercase tracking-widest">Aktif</span>
+                        <?php
+                        $statusColor = 'bg-blue-50 text-blue-600';
+                        if ($activePlan['status'] === 'Target Tercapai') {
+                            $statusColor = 'bg-amber-50 text-amber-600';
+                        } elseif ($activePlan['status'] === 'Masuk Kelompok') {
+                            $statusColor = 'bg-emerald-50 text-emerald-600';
+                        } elseif ($activePlan['status'] === 'Selesai') {
+                            $statusColor = 'bg-gray-100 text-gray-600';
+                        }
+                        ?>
+                        <span class="<?php echo $statusColor; ?> text-[10px] font-black px-3 py-1.5 rounded-full uppercase tracking-widest"><?php echo htmlspecialchars($activePlan['status']); ?></span>
                     <?php else: ?>
                         <span class="bg-gray-100 text-gray-400 text-[10px] font-black px-3 py-1.5 rounded-full uppercase tracking-widest">Tidak Ada</span>
                     <?php endif; ?>
@@ -180,20 +225,66 @@ unset($_SESSION['success']);
                 
                 <div class="p-10 flex-grow flex flex-col justify-center">
                     <?php if ($activePlan): ?>
-                        <div class="flex items-center gap-6 mb-8">
-                            <div class="w-20 h-20 rounded-2xl bg-gray-100 overflow-hidden border border-gray-100 shrink-0">
-                                <img src="<?php echo $activePlan['animal_image'] ?: 'https://images.unsplash.com/photo-1524024973431-2ad916746881?auto=format&fit=crop&q=80'; ?>" class="w-full h-full object-cover">
-                            </div>
+                        <div class="mb-8">
                             <div>
                                 <h4 class="text-lg font-black text-gray-900 capitalize leading-tight"><?php echo $activePlan['animal_type'] ?: 'Target Kustom'; ?></h4>
-                                <p class="text-xs text-gray-400 font-bold mt-1 uppercase tracking-widest">Target Tercapai: <?php echo floor(($totalSaved / $activePlan['target_amount']) * 100); ?>%</p>
+                                <p class="text-xs text-gray-400 font-bold mt-1 uppercase tracking-widest">Target: Rp <?php echo number_format($activePlan['target_amount'], 0, ',', '.'); ?></p>
+                                <p class="text-xs text-gray-400 font-bold mt-1 uppercase tracking-widest">Program: <?php echo $activePlan['program_type'] === 'sapi_patungan' ? 'Sapi Patungan (1/7)' : 'Kambing (Individu)'; ?></p>
                             </div>
                         </div>
 
-                        <!-- Progress Bar -->
-                        <div class="w-full bg-gray-100 rounded-full h-4 mb-8 p-1 overflow-hidden">
-                            <div class="bg-brand-primary h-full rounded-full transition-all duration-1000 shadow-lg shadow-brand-primary/20" style="width: <?php echo ($totalSaved / $activePlan['target_amount']) * 100; ?>%"></div>
-                        </div>
+                        <!-- Progress Bar & Target Information -->
+                        <?php if (in_array($activePlan['status'], ['Aktif', 'active', 'overdue'], true)): ?>
+                            <div class="mb-6">
+                                <div class="flex justify-between text-xs font-bold text-gray-500 mb-2">
+                                    <span>Progress Tabungan</span>
+                                    <span><?php echo floor(($totalSaved / $activePlan['target_amount']) * 100); ?>%</span>
+                                </div>
+                                <div class="w-full bg-gray-100 rounded-full h-4 p-1 overflow-hidden">
+                                    <div class="bg-brand-primary h-full rounded-full transition-all duration-1000 shadow-lg shadow-brand-primary/20" style="width: <?php echo ($totalSaved / $activePlan['target_amount']) * 100; ?>%"></div>
+                                </div>
+                            </div>
+                        <?php elseif ($activePlan['status'] === 'Target Tercapai'): ?>
+                            <div class="mb-8 p-6 rounded-2xl bg-amber-50 border border-amber-200">
+                                <div class="flex items-center gap-3">
+                                    <span class="flex h-8 w-8 items-center justify-center rounded-lg bg-amber-100 text-amber-600"><i class="fas fa-hourglass-half text-sm"></i></span>
+                                    <div>
+                                        <p class="text-sm font-black text-gray-900">Menunggu Pembentukan Kelompok</p>
+                                        <p class="text-xs text-gray-500 mt-0.5">Target tabungan Anda sudah tercapai. Panitia sedang memproses pembentukan kelompok qurban Anda.</p>
+                                    </div>
+                                </div>
+                            </div>
+                        <?php elseif ($activePlan['status'] === 'Masuk Kelompok'): ?>
+                            <div class="mb-8 p-6 rounded-2xl bg-emerald-50 border border-emerald-100 space-y-4">
+                                <div class="flex items-center gap-3 pb-3 border-b border-emerald-100/50">
+                                    <span class="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-100 text-emerald-600"><i class="fas fa-users text-sm"></i></span>
+                                    <div>
+                                        <p class="text-xs font-bold text-emerald-700/80 uppercase tracking-widest">Informasi Kelompok Sapi</p>
+                                        <p class="text-base font-black text-emerald-900 mt-0.5"><?php echo htmlspecialchars($activePlan['group_code']); ?></p>
+                                    </div>
+                                </div>
+                                <div class="grid grid-cols-2 gap-4 text-xs font-bold text-emerald-800">
+                                    <div>
+                                        <p class="text-[10px] text-emerald-600/75 uppercase tracking-widest leading-none mb-1">Anggota Saat Ini</p>
+                                        <p class="text-sm font-black text-emerald-950"><?php echo (int)($activePlan['group_members'] ?? 0); ?> / 7 Orang</p>
+                                    </div>
+                                    <div>
+                                        <p class="text-[10px] text-emerald-600/75 uppercase tracking-widest leading-none mb-1">Status Kelompok</p>
+                                        <p class="text-sm font-black text-emerald-950"><?php echo htmlspecialchars($activePlan['group_status'] ?? 'Menunggu Anggota'); ?></p>
+                                    </div>
+                                </div>
+                            </div>
+                        <?php elseif ($activePlan['status'] === 'Selesai'): ?>
+                            <div class="mb-8 p-6 rounded-2xl bg-blue-50 border border-blue-100">
+                                <div class="flex items-center gap-3">
+                                    <span class="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-100 text-blue-600"><i class="fas fa-check-circle text-sm"></i></span>
+                                    <div>
+                                        <p class="text-sm font-black text-gray-900">Qurban Selesai</p>
+                                        <p class="text-xs text-gray-500 mt-0.5">Seluruh proses qurban telah selesai dilaksanakan. Terima kasih atas partisipasi Anda.</p>
+                                    </div>
+                                </div>
+                            </div>
+                        <?php endif; ?>
 
                         <?php if ($sohibulQurban): ?>
                         <div class="mb-8 p-6 rounded-2xl bg-brand-light/30 border border-brand-primary/10">
@@ -235,13 +326,15 @@ unset($_SESSION['success']);
                             </div>
                             <div class="p-4 rounded-2xl bg-gray-50 text-right">
                                 <p class="text-[10px] text-gray-400 font-black uppercase tracking-widest mb-1">Kekurangan</p>
-                                <p class="text-lg font-black text-gray-900">Rp <?php echo number_format($activePlan['target_amount'] - $totalSaved, 0, ',', '.'); ?></p>
+                                <p class="text-lg font-black text-gray-900">Rp <?php echo number_format(max(0, $activePlan['target_amount'] - $totalSaved), 0, ',', '.'); ?></p>
                             </div>
                         </div>
 
-                        <button onclick="openPaymentModal(<?php echo $activePlan['id']; ?>, <?php echo (int)$activePlan['monthly_target']; ?>)" class="w-full bg-brand-primary text-white py-5 rounded-2xl font-black text-sm shadow-xl shadow-brand-primary/20 hover:bg-brand-dark transition-all flex items-center justify-center gap-3">
-                            <i class="fas fa-paper-plane"></i> Setor Tabungan (Bukti Transfer)
-                        </button>
+                        <?php if (in_array($activePlan['status'], ['Aktif', 'active', 'overdue'], true)): ?>
+                            <button onclick="openPaymentModal(<?php echo $activePlan['id']; ?>, <?php echo (int)$activePlan['monthly_target']; ?>)" class="w-full bg-brand-primary text-white py-5 rounded-2xl font-black text-sm shadow-xl shadow-brand-primary/20 hover:bg-brand-dark transition-all flex items-center justify-center gap-3">
+                                <i class="fas fa-paper-plane"></i> Setor Tabungan (Bukti Transfer)
+                            </button>
+                        <?php endif; ?>
                     <?php else: ?>
                         <div class="text-center py-10">
                             <div class="w-20 h-20 rounded-full bg-gray-50 flex items-center justify-center mx-auto mb-6 text-gray-300 text-3xl">
@@ -274,7 +367,14 @@ unset($_SESSION['success']);
                                         </div>
                                         <div class="ml-5">
                                             <p class="text-sm font-black text-gray-900 leading-none">Rp <?php echo number_format($trx['amount'], 0, ',', '.'); ?></p>
-                                            <p class="text-[10px] text-gray-400 font-bold mt-1 uppercase tracking-widest"><?php echo date('d M Y, H:i', strtotime($trx['created_at'])); ?></p>
+                                            <?php
+                                                $notes = $trx['notes'] ?? '';
+                                                $displayDate = $trx['created_at'];
+                                                if (preg_match('/Tanggal setor:\s*([0-9]{4}-[0-9]{2}-[0-9]{2})/i', $notes, $matches)) {
+                                                    $displayDate = $matches[1] . ' ' . date('H:i:s', strtotime($trx['created_at']));
+                                                }
+                                            ?>
+                                            <p class="text-[10px] text-gray-400 font-bold mt-1 uppercase tracking-widest"><?php echo date('d M Y, H:i', strtotime($displayDate)); ?></p>
                                         </div>
                                     </div>
                                     <div class="text-right">
